@@ -58,6 +58,7 @@ scripts/            tareas de consola (migrar la BD, crear usuario)
 
 ## Reglas de trabajo
 - Cambios pequeños, una etapa a la vez. Al terminar cada etapa, propón un mensaje de commit en español que explique qué cambió. **No hagas commit sin aprobación explícita.**
+- Si necesitas un archivo temporal para el mensaje de commit, créalo en la carpeta temporal del sistema, fuera del proyecto, y bórralo después.
 - Nunca pongas claves reales en el código. Todo secreto va en `.env`; mantén `.env.example` actualizado cada vez que se agregue o cambie una variable.
 - Toda regla de negocio se valida en el servidor y, cuando aplique, también con restricciones en la base de datos (`UNIQUE`, `NOT NULL`, `CHECK`, `FOREIGN KEY`).
 - Consultas SQL siempre con parámetros; nunca concatenando texto.
