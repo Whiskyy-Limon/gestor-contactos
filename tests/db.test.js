@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { abrirBaseDeDatos } from '../src/db/conexion.js';
-import { aplicarMigraciones } from '../src/db/migraciones.js';
+import { aplicarMigraciones, migracionesPendientes } from '../src/db/migraciones.js';
 import {
   CODIGOS_AREA_PROVINCIA,
   MAXIMO_CORREOS_POR_CONTACTO,
@@ -251,6 +251,22 @@ describe('migraciones', () => {
 
       assert.ok(primera.includes('001_esquema_inicial.sql'));
       assert.deepEqual(segunda, []);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('migracionesPendientes lista lo que falta sin modificar la base de datos', () => {
+    const db = abrirBaseDeDatos(':memory:');
+    try {
+      const antes = migracionesPendientes(db);
+      const tablas = db.prepare("SELECT count(*) FROM sqlite_schema WHERE type = 'table'").pluck().get();
+
+      assert.ok(antes.includes('001_esquema_inicial.sql') && antes.includes('002_sesiones.sql'));
+      assert.equal(tablas, 0);
+
+      aplicarMigraciones(db);
+      assert.deepEqual(migracionesPendientes(db), []);
     } finally {
       db.close();
     }

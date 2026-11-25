@@ -1,8 +1,8 @@
 // Constantes de las reglas de negocio (docs/REGLAS-NEGOCIO.md) que usan los validadores.
 //
-// La base de datos tiene su propia copia de estos valores en los CHECK y triggers de las
-// migraciones. Si cambias alguno, crea una migración nueva que actualice la base de datos;
-// tests/db.test.js verifica que ambos coincidan.
+// Algunos de estos valores (códigos de área y máximos por contacto) también están en los CHECK
+// y triggers de las migraciones. Si cambias uno de ellos, crea una migración nueva que actualice
+// la base de datos; tests/db.test.js verifica que ambos coincidan.
 
 // T4: códigos de área de la telefonía fija de provincia (Perú), uno por departamento.
 export const CODIGOS_AREA_PROVINCIA = Object.freeze([
@@ -16,3 +16,8 @@ export const CODIGOS_AREA_PROVINCIA = Object.freeze([
 // C3: máximo de teléfonos y de correos por contacto.
 export const MAXIMO_TELEFONOS_POR_CONTACTO = 5;
 export const MAXIMO_CORREOS_POR_CONTACTO = 5;
+
+// U2: largo de la contraseña. El máximo se mide en bytes UTF-8 porque bcrypt
+// solo usa los primeros 72 bytes y descarta el resto sin avisar.
+export const MINIMO_CARACTERES_PASSWORD = 10;
+export const MAXIMO_BYTES_PASSWORD = 72;

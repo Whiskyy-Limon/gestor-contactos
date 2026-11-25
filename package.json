@@ -16,8 +16,10 @@
     "user:create": "node --env-file-if-exists=.env scripts/create-user.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.2.0",
     "express": "^5.3.0",
-    "express-session": "^1.19.0"
+    "express-session": "^1.19.0",
+    "zod": "^4.6.7"
   }
 }

@@ -119,9 +119,9 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 **Porqué:** Es un sistema interno de la empresa. Con un registro abierto, cualquier persona en internet podría crearse una cuenta y ver los contactos.
 
 ### U2. Contraseña
-**Regla:** La contraseña tiene como mínimo 10 caracteres y se guarda cifrada con bcrypt.
+**Regla:** La contraseña tiene como mínimo 10 caracteres y como máximo 72 bytes, y se guarda como hash bcrypt, nunca en texto plano. 72 bytes equivalen a 72 caracteres sin tildes; las letras con tilde y la ñ ocupan 2 bytes y los emojis 4, así que con ellos caben menos caracteres. Una contraseña más larga se rechaza con un mensaje que explica el límite.
 
-**Porqué:** La longitud es lo que más dificulta adivinar una contraseña. bcrypt es un algoritmo lento y con sal: si alguien obtuviera la base de datos, no podría recuperar las contraseñas con facilidad.
+**Porqué:** La longitud es lo que más dificulta adivinar una contraseña. bcrypt es un algoritmo lento y con sal: si alguien obtuviera la base de datos, no podría recuperar las contraseñas con facilidad. El máximo existe porque bcrypt solo usa los primeros 72 bytes y descarta el resto sin avisar: dos contraseñas largas que empezaran igual servirían como si fueran la misma. Rechazarlas evita esa falsa sensación de seguridad.
 
 ### U3. Correo de usuario único
 **Regla:** El correo de cada usuario es único, sin distinguir mayúsculas de minúsculas.
