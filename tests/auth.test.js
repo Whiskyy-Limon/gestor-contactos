@@ -6,11 +6,14 @@ import { crearApp } from '../src/app.js';
 import {
   CORREO,
   NOMBRE,
+  PASSWORD,
   SECRETO_DE_PRUEBA,
+  cerrarSesion,
   contarSesiones,
   cookieDeSesion,
   crearEntornoDePrueba,
   iniciarSesion,
+  tokenCsrf,
 } from './helpers/app-de-prueba.js';
 
 const TREINTA_DIAS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -81,11 +84,10 @@ describe('autenticación', () => {
 
       assert.equal(sinCuenta.status, malaPassword.status);
       assert.equal(mensajeDeError(sinCuenta.text), MENSAJE_GENERICO);
-      // La página es idéntica salvo por el correo escrito, que se vuelve a mostrar.
-      assert.equal(
-        sinCuenta.text.replace('nadie@empresa.pe', 'CORREO'),
-        malaPassword.text.replace(CORREO, 'CORREO'),
-      );
+      // La página es idéntica salvo por el correo escrito y el token CSRF (cada sesión tiene el suyo).
+      const normalizar = (html, correo) =>
+        html.replace(correo, 'CORREO').replace(/name="_csrf" value="[^"]+"/, 'name="_csrf" value="TOKEN"');
+      assert.equal(normalizar(sinCuenta.text, 'nadie@empresa.pe'), normalizar(malaPassword.text, CORREO));
     });
 
     it('vuelve a mostrar el correo escrito, pero nunca la contraseña', async () => {
@@ -228,7 +230,7 @@ describe('autenticación', () => {
       await iniciarSesion(agente);
       assert.equal(contarSesiones(entorno.db), 1);
 
-      const logout = await agente.post('/logout');
+      const logout = await cerrarSesion(agente);
 
       assert.equal(logout.status, 303);
       assert.equal(logout.headers.location, '/login');
@@ -239,18 +241,17 @@ describe('autenticación', () => {
 
     it('después de cerrar sesión, la cookie vieja ya no sirve', async () => {
       const cookie = await cookieConSesion();
-      await request(entorno.app).post('/logout').set('Cookie', cookie);
+      const pagina = await request(entorno.app).get('/').set('Cookie', cookie);
+      const logout = await request(entorno.app)
+        .post('/logout')
+        .set('Cookie', cookie)
+        .type('form')
+        .send({ _csrf: tokenCsrf(pagina.text) });
+      assert.equal(logout.status, 303);
 
       const respuesta = await request(entorno.app).get('/').set('Cookie', cookie);
 
       assert.equal(respuesta.status, 302);
-      assert.equal(respuesta.headers.location, '/login');
-    });
-
-    it('sin sesión, POST /logout redirige a /login', async () => {
-      const respuesta = await request(entorno.app).post('/logout');
-
-      assert.equal(respuesta.status, 303);
       assert.equal(respuesta.headers.location, '/login');
     });
   });
@@ -266,12 +267,18 @@ describe('autenticación', () => {
     it('en producción, detrás de un proxy con HTTPS, usa la cookie __Host- con Secure', async () => {
       const app = crearApp({ db: entorno.db, sessionSecret: SECRETO_DE_PRUEBA, produccion: true, trustProxy: 1 });
 
+      // El agente de pruebas no reenvía cookies Secure por http, así que la cookie se pasa a mano.
+      const formulario = await request(app).get('/login').set('X-Forwarded-Proto', 'https');
+      const cookieAnonima = cookieDeSesion(formulario, '__Host-gestor.sid');
+      assert.ok(cookieAnonima, 'la sesión anónima también usa __Host-');
       const login = await request(app)
         .post('/login')
         .set('X-Forwarded-Proto', 'https')
+        .set('Cookie', cookieAnonima)
         .type('form')
-        .send({ correo: CORREO, password: 'clave-segura-123' });
+        .send({ correo: CORREO, password: PASSWORD, _csrf: tokenCsrf(formulario.text) });
 
+      assert.equal(login.status, 303);
       const cookie = login.headers['set-cookie'].find((c) => c.startsWith('__Host-gestor.sid='));
       assert.ok(cookie, 'debe enviar la cookie __Host-gestor.sid');
       assert.match(cookie, /; Secure/);

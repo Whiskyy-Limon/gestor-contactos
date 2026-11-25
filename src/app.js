@@ -2,7 +2,9 @@ import path from 'node:path';
 import express from 'express';
 import { config } from './config/index.js';
 import { requiereSesion } from './middlewares/auth.js';
+import { proteccionCsrf } from './middlewares/csrf.js';
 import { manejarErrores, noEncontrado } from './middlewares/errores.js';
+import { cabecerasDeSeguridad } from './middlewares/seguridad.js';
 import { crearSesion } from './middlewares/sesion.js';
 import { crearRutaLogout, crearRutasLogin } from './routes/auth.js';
 import inicioRouter from './routes/inicio.js';
@@ -35,32 +37,38 @@ export function crearApp({
   app.set('view engine', 'ejs');
   app.set('views', CARPETA_VISTAS);
 
-  // 1. Archivos estáticos: antes de la sesión, así el CSS no consulta la base de datos.
+  // 1. Cabeceras de seguridad (CSP, HSTS, etc.) en todas las respuestas, también en los estáticos.
+  app.use(cabecerasDeSeguridad({ produccion }));
+
+  // 2. Archivos estáticos: antes de la sesión, así el CSS no consulta la base de datos.
   app.use(express.static(CARPETA_PUBLICA, { index: false }));
 
-  // 2. Formularios (application/x-www-form-urlencoded), con un límite de tamaño.
+  // 3. Formularios (application/x-www-form-urlencoded), con un límite de tamaño.
   app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
-  // 3. Sesión guardada en SQLite.
+  // 4. Sesión guardada en SQLite.
   const sesion = crearSesion({ db, secreto: sessionSecret, produccion });
   app.use(sesion.middleware);
 
-  // 4. Rutas públicas.
+  // 5. CSRF: todo POST/PUT/PATCH/DELETE debe traer el token de la sesión, también el login.
+  app.use(proteccionCsrf);
+
+  // 6. Rutas públicas.
   app.use(crearRutasLogin(db));
 
-  // 5. Desde aquí todo exige sesión iniciada. Toda ruta nueva se registra DEBAJO de esta línea,
+  // 7. Desde aquí todo exige sesión iniciada. Toda ruta nueva se registra DEBAJO de esta línea,
   //    así queda protegida por defecto.
   app.use(requiereSesion(db));
 
-  // 6. Rutas protegidas.
+  // 8. Rutas protegidas.
   app.use(inicioRouter);
   app.use(crearRutaLogout(sesion));
 
-  // 7. Página no encontrada (solo la ve quien tiene sesión: al resto el paso 5 lo manda al login,
+  // 9. Página no encontrada (solo la ve quien tiene sesión: al resto el paso 7 lo manda al login,
   //    así no se revela qué rutas existen).
   app.use(noEncontrado(registrarError));
 
-  // 8. Errores: página genérica, sin stack.
+  // 10. Errores: página genérica, sin stack.
   app.use(manejarErrores(registrarError));
 
   return app;

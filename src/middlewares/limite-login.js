@@ -1,0 +1,40 @@
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+import {
+  MAXIMO_INTENTOS_FALLIDOS_POR_CORREO,
+  MAXIMO_INTENTOS_FALLIDOS_POR_IP,
+  VENTANA_INTENTOS_LOGIN_MS,
+} from '../validators/reglas.js';
+
+// U5: límite de intentos fallidos de inicio de sesión. Son dos contadores:
+// - por IP y correo: si una persona se equivoca, solo se bloquea su correo, no el resto de la
+//   oficina que sale a internet con la misma IP;
+// - por IP, más alto: frena a quien prueba muchos correos distintos.
+// Los intentos correctos no cuentan (skipSuccessfulRequests: una respuesta < 400 se descuenta).
+// Los contadores viven en memoria: se reinician al reiniciar el servidor.
+
+function correoNormalizado(req) {
+  const correo = req.body?.correo;
+  return typeof correo === 'string' ? correo.trim().toLowerCase() : '';
+}
+
+// `alBloquear(req, res)` responde cuando se superó un límite.
+export function crearLimitesLogin({ alBloquear }) {
+  const comunes = {
+    windowMs: VENTANA_INTENTOS_LOGIN_MS,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (req, res) => alBloquear(req, res),
+  };
+
+  const porIp = rateLimit({ ...comunes, limit: MAXIMO_INTENTOS_FALLIDOS_POR_IP });
+
+  const porIpYCorreo = rateLimit({
+    ...comunes,
+    limit: MAXIMO_INTENTOS_FALLIDOS_POR_CORREO,
+    // ipKeyGenerator agrupa las IPv6 por subred (/56), como el contador por IP.
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip)}|${correoNormalizado(req)}`,
+  });
+
+  return [porIp, porIpYCorreo];
+}

@@ -7,6 +7,8 @@
   <% } %>
 
   <form method="post" action="/login" class="formulario">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+
     <label for="correo">Correo</label>
     <input id="correo" name="correo" type="email" autocomplete="username" required autofocus value="<%= correo %>">
 

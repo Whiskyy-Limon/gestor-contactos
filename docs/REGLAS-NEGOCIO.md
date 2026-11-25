@@ -133,6 +133,11 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 
 **Porqué:** Un mensaje distinto para un correo inexistente, o una respuesta más rápida en ese caso, permitiría averiguar qué correos tienen cuenta. Es un sistema de uso diario en las computadoras de la empresa: pedir la contraseña a cada rato llevaría a anotarla en un papel o a elegir una más corta. Cerrar sesión borra la sesión del servidor, así que una cookie copiada deja de servir.
 
+### U5. Límite de intentos de inicio de sesión
+**Regla:** Se permiten 5 intentos fallidos cada 8 minutos para cada combinación de IP y correo (el correo sin distinguir mayúsculas ni espacios), y 30 intentos fallidos cada 8 minutos por IP, sumando todos los correos. Al superar cualquiera de los dos límites, los intentos se rechazan, incluso con la contraseña correcta, hasta que termine la ventana de 8 minutos, con el mensaje "Demasiados intentos. Espera unos minutos e intenta de nuevo." Los inicios de sesión correctos no cuentan.
+
+**Porqué:** Frena a quien intenta adivinar contraseñas probando muchas. Contar por IP y correo evita que, en una oficina donde todos salen a internet con la misma IP, los errores de una persona bloqueen a las demás; el tope por IP frena a quien prueba muchos correos distintos. La ventana es de 8 minutos, y no más larga, porque la contraseña mínima de 10 caracteres (U2) ya hace inviable la fuerza bruta incluso con unos 37 intentos por hora para un mismo correo; así, un empleado que se equivoca no queda bloqueado tanto tiempo. Los contadores se guardan en memoria y se reinician si se reinicia el servidor, lo que alcanza mientras haya un único servidor.
+
 ---
 
 ## Búsqueda

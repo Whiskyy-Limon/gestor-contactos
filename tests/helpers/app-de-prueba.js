@@ -37,10 +37,22 @@ export function cookieDeSesion(respuesta, nombre = NOMBRE_COOKIE) {
   return cookie ? cookie.split(';')[0] : null;
 }
 
-// Inicia sesión como un navegador: abre el formulario y lo envía. Devuelve la respuesta del envío.
+// Valor del campo oculto _csrf de la página, o null si no tiene.
+export function tokenCsrf(html) {
+  return html.match(/name="_csrf" value="([^"]+)"/)?.[1] ?? null;
+}
+
+// Inicia sesión como un navegador: abre el formulario y lo envía con su token CSRF.
+// Devuelve la respuesta del envío.
 export async function iniciarSesion(agente, { correo = CORREO, password = PASSWORD } = {}) {
-  await agente.get('/login');
-  return agente.post('/login').type('form').send({ correo, password });
+  const formulario = await agente.get('/login');
+  return agente.post('/login').type('form').send({ correo, password, _csrf: tokenCsrf(formulario.text) });
+}
+
+// Cierra sesión como un navegador: toma el token del botón "Cerrar sesión" de la página de inicio.
+export async function cerrarSesion(agente) {
+  const pagina = await agente.get('/');
+  return agente.post('/logout').type('form').send({ _csrf: tokenCsrf(pagina.text) });
 }
 
 export function contarSesiones(db) {

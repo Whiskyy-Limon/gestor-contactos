@@ -21,3 +21,8 @@ export const MAXIMO_CORREOS_POR_CONTACTO = 5;
 // solo usa los primeros 72 bytes y descarta el resto sin avisar.
 export const MINIMO_CARACTERES_PASSWORD = 10;
 export const MAXIMO_BYTES_PASSWORD = 72;
+
+// U5: intentos fallidos de inicio de sesión permitidos por ventana de tiempo.
+export const VENTANA_INTENTOS_LOGIN_MS = 8 * 60 * 1000;
+export const MAXIMO_INTENTOS_FALLIDOS_POR_CORREO = 5; // por cada combinación de IP y correo
+export const MAXIMO_INTENTOS_FALLIDOS_POR_IP = 30; // por IP, sumando todos los correos

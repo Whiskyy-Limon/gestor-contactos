@@ -11,6 +11,7 @@
     <span class="marca">Gestor de contactos</span>
     <% if (locals.usuario) { %>
       <form method="post" action="/logout" class="barra__salir">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <span class="barra__usuario"><%= usuario.nombre %></span>
         <button type="submit" class="boton boton--secundario">Cerrar sesión</button>
       </form>

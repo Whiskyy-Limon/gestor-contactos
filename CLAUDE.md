@@ -24,6 +24,7 @@ Sistema web para que una pequeña empresa gestione sus contactos (clientes y pro
 - `src/app.js` exporta `crearApp({ db, sessionSecret, ... })`, que construye y devuelve la app sin escuchar en ningún puerto; `src/server.js` es el único que llama a `listen`.
 - Rutas: en `src/app.js` las públicas se registran antes de `requiereSesion` y todas las demás después. Así, una ruta nueva queda protegida por defecto.
 - Vistas EJS: siempre `<%= %>` (escapa HTML); `<%- %>` solo para `include`. Sin estilos ni scripts en línea (la CSP no los permite).
+- CSRF: todo formulario POST lleva `<input type="hidden" name="_csrf" value="<%= csrfToken() %>">` (o la cabecera `X-CSRF-Token`). Pendiente para la etapa de fotos: el middleware global no puede leer el cuerpo de un formulario multipart (lo lee multer, más adelante), así que hoy lo rechazaría con 403. Esas rutas tendrán que quedar fuera de la verificación global y verificar el token ellas mismas, después de multer.
 - Errores: nunca se muestra el stack ni el mensaje interno al usuario. Para un error del cliente, lanzar un error con `status` (4xx) y, si hace falta, `mensajePublico` en español.
 - Las pruebas viven en `tests/` y se llaman `*.test.js`. Las utilidades compartidas van en `tests/helpers/` (por ejemplo `app-de-prueba.js`: base de datos en memoria, usuario de prueba y secreto propio).
 - Las reglas de negocio están en `docs/REGLAS-NEGOCIO.md`, cada una con un código (C1, T2…). Cita ese código en el código y en las pruebas que la implementan.
