@@ -13,12 +13,19 @@ Sistema web para que una pequeña empresa gestione sus contactos (clientes y pro
 - Pruebas con **node:test** + **supertest**.
 - **Windows es el sistema de desarrollo**: todos los scripts de npm deben funcionar en Windows (nada de `VAR=valor comando`, `rm -rf`, etc.).
 
+## Dependencias
+- `ejs` está fijada en **3.1.10** (versión exacta, sin `^`). En 2026 se publicaron las versiones mayores 4, 5, 6 y 7 en menos de un año, sin notas de versión ni CHANGELOG: es una señal de riesgo de cadena de suministro. La 3.1.10 es la versión estable conocida y corrige la última CVE publicada (CVE-2024-33883). **No actualizarla sin revisar qué cambió y sin aprobación.**
+- Después de instalar o actualizar dependencias, correr `npm audit` y mostrar el resultado.
+
 ## Convenciones técnicas
 - Módulos ES (`"type": "module"`): `import`/`export`, con la extensión `.js` en las rutas relativas.
 - Node >= 22.9. Las variables de `.env` se cargan con la opción nativa `--env-file-if-exists` y el modo desarrollo usa `node --watch`; por eso no se usan `dotenv` ni `nodemon`.
 - `src/config/` es el único lugar que lee `process.env`; el resto del código importa la configuración desde ahí.
-- `src/app.js` exporta `crearApp()`, que construye y devuelve la app sin escuchar en ningún puerto; `src/server.js` es el único que llama a `listen`.
-- Las pruebas viven en `tests/` y se llaman `*.test.js`.
+- `src/app.js` exporta `crearApp({ db, sessionSecret, ... })`, que construye y devuelve la app sin escuchar en ningún puerto; `src/server.js` es el único que llama a `listen`.
+- Rutas: en `src/app.js` las públicas se registran antes de `requiereSesion` y todas las demás después. Así, una ruta nueva queda protegida por defecto.
+- Vistas EJS: siempre `<%= %>` (escapa HTML); `<%- %>` solo para `include`. Sin estilos ni scripts en línea (la CSP no los permite).
+- Errores: nunca se muestra el stack ni el mensaje interno al usuario. Para un error del cliente, lanzar un error con `status` (4xx) y, si hace falta, `mensajePublico` en español.
+- Las pruebas viven en `tests/` y se llaman `*.test.js`. Las utilidades compartidas van en `tests/helpers/` (por ejemplo `app-de-prueba.js`: base de datos en memoria, usuario de prueba y secreto propio).
 - Las reglas de negocio están en `docs/REGLAS-NEGOCIO.md`, cada una con un código (C1, T2…). Cita ese código en el código y en las pruebas que la implementan.
 - Los valores de las reglas que usa el servidor (códigos de área, máximos por contacto) se definen una sola vez, en `src/validators/reglas.js`. Si la base de datos también los aplica, una prueba verifica que ambos coincidan.
 

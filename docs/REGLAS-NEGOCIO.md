@@ -128,6 +128,11 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 
 **Porqué:** El correo identifica al usuario al iniciar sesión; "Ana@empresa.com" y "ana@empresa.com" deben ser la misma cuenta.
 
+### U4. Inicio y cierre de sesión
+**Regla:** Si el correo o la contraseña no son correctos, el mensaje es siempre el mismo, "Correo o contraseña incorrectos", y la respuesta tarda lo mismo exista o no el correo. Al iniciar sesión, la sesión dura 30 días y se renueva con cada uso, así que solo vence después de 30 días sin entrar. Sobrevive a recargar la página, cerrar el navegador y reiniciar el servidor, y termina cuando la persona cierra sesión.
+
+**Porqué:** Un mensaje distinto para un correo inexistente, o una respuesta más rápida en ese caso, permitiría averiguar qué correos tienen cuenta. Es un sistema de uso diario en las computadoras de la empresa: pedir la contraseña a cada rato llevaría a anotarla en un papel o a elegir una más corta. Cerrar sesión borra la sesión del servidor, así que una cookie copiada deja de servir.
+
 ---
 
 ## Búsqueda

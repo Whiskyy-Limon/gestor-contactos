@@ -1,0 +1,116 @@
+/* Estilos base. Sin estilos en línea en las vistas: la Content-Security-Policy no los permite. */
+
+:root {
+  --color-texto: #1f2933;
+  --color-fondo: #f5f7fa;
+  --color-tarjeta: #ffffff;
+  --color-borde: #d9e2ec;
+  --color-primario: #1c64f2;
+  --color-primario-oscuro: #1a56db;
+  --color-error-fondo: #fde8e8;
+  --color-error-texto: #9b1c1c;
+  --radio: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--color-texto);
+  background: var(--color-fondo);
+  line-height: 1.5;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-tarjeta);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.marca {
+  font-weight: 600;
+}
+
+.barra__salir {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.contenido {
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.tarjeta {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.tarjeta h1 {
+  margin-top: 0;
+  font-size: 1.5rem;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formulario input {
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.formulario .boton {
+  margin-top: 0.75rem;
+}
+
+.boton {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  color: #ffffff;
+  background: var(--color-primario);
+  border: none;
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+
+.boton:hover,
+.boton:focus-visible {
+  background: var(--color-primario-oscuro);
+}
+
+.boton--secundario {
+  color: var(--color-texto);
+  background: transparent;
+  border: 1px solid var(--color-borde);
+}
+
+.boton--secundario:hover,
+.boton--secundario:focus-visible {
+  background: var(--color-fondo);
+}
+
+.alerta {
+  padding: 0.75rem;
+  color: var(--color-error-texto);
+  background: var(--color-error-fondo);
+  border-radius: var(--radio);
+}

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= titulo %> · Gestor de contactos</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <span class="marca">Gestor de contactos</span>
+    <% if (locals.usuario) { %>
+      <form method="post" action="/logout" class="barra__salir">
+        <span class="barra__usuario"><%= usuario.nombre %></span>
+        <button type="submit" class="boton boton--secundario">Cerrar sesión</button>
+      </form>
+    <% } %>
+  </header>
+  <main class="contenido">

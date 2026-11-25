@@ -23,6 +23,16 @@ const password = z
       `(${MAXIMO_BYTES_PASSWORD} caracteres sin tildes; las letras con tilde y la ñ ocupan 2 bytes y los emojis 4).`,
   });
 
+// Datos del formulario de login (U4). Solo se revisa la forma: cualquier problema se responde con
+// el mismo mensaje genérico que una contraseña incorrecta, para no dar pistas.
+export const esquemaLogin = z.object({
+  correo: z.string().trim().toLowerCase().max(254),
+  password: z
+    .string()
+    .min(1)
+    .refine((valor) => Buffer.byteLength(valor, 'utf8') <= MAXIMO_BYTES_PASSWORD),
+});
+
 // Usuario nuevo (U2, U3). El correo se guarda en minúsculas y sin espacios alrededor.
 export const esquemaNuevoUsuario = z.object({
   nombre: z
