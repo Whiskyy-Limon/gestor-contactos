@@ -208,6 +208,18 @@ describe('esquema de la base de datos', () => {
     });
   });
 
+  describe('sesiones (002)', () => {
+    it('rechaza datos de sesión que no son JSON', () => {
+      assert.throws(
+        () =>
+          db
+            .prepare('INSERT INTO sesiones (sid, datos, expira_en) VALUES (?, ?, ?)')
+            .run('abc', 'no es json', Date.now()),
+        { code: 'SQLITE_CONSTRAINT_CHECK' },
+      );
+    });
+  });
+
   describe('borrado en cascada', () => {
     // La aplicación archiva en vez de borrar (C5); la cascada protege la integridad
     // si alguna vez se borra un contacto directamente en la base de datos.
