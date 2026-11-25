@@ -16,6 +16,7 @@
     "user:create": "node --env-file-if-exists=.env scripts/create-user.js"
   },
   "dependencies": {
+    "better-sqlite3": "^13.2.0",
     "express": "^5.3.0"
   }
 }

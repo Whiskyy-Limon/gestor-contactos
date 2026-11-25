@@ -19,6 +19,16 @@ Sistema web para que una pequeña empresa gestione sus contactos (clientes y pro
 - `src/config/` es el único lugar que lee `process.env`; el resto del código importa la configuración desde ahí.
 - `src/app.js` exporta `crearApp()`, que construye y devuelve la app sin escuchar en ningún puerto; `src/server.js` es el único que llama a `listen`.
 - Las pruebas viven en `tests/` y se llaman `*.test.js`.
+- Las reglas de negocio están en `docs/REGLAS-NEGOCIO.md`, cada una con un código (C1, T2…). Cita ese código en el código y en las pruebas que la implementan.
+- Los valores de las reglas que usa el servidor (códigos de área, máximos por contacto) se definen una sola vez, en `src/validators/reglas.js`. Si la base de datos también los aplica, una prueba verifica que ambos coincidan.
+
+## Base de datos y migraciones
+- La conexión se abre con `abrirBaseDeDatos()` (`src/db/conexion.js`), que activa `foreign_keys` y WAL.
+- Las migraciones son archivos `src/db/migrations/NNN_descripcion.sql`. `npm run db:migrate` aplica las pendientes en orden, cada una en su transacción, y las registra en `schema_migrations`.
+- Una migración ya aplicada no se edita nunca: cualquier cambio va en una migración nueva.
+- Los archivos `.sql` no llevan `BEGIN`/`COMMIT` (el migrador ya abre la transacción) ni `PRAGMA` (no tiene efecto dentro de una transacción).
+- Tablas `STRICT`. Fechas como texto ISO 8601 en UTC con `Z` (`strftime('%Y-%m-%dT%H:%M:%SZ', 'now')`).
+- Las pruebas usan `abrirBaseDeDatos(':memory:')` + `aplicarMigraciones(db)`; nunca la base de datos real.
 
 ## Estructura
 ```
@@ -32,6 +42,7 @@ src/
   validators/       esquemas zod
   middlewares/      auth, csrf, errores, upload
   views/            plantillas EJS
+docs/               reglas de negocio (REGLAS-NEGOCIO.md)
 public/             CSS y archivos estáticos
 storage/uploads/    fotos subidas; FUERA de public, se sirven por una ruta protegida
 tests/              pruebas
