@@ -5,6 +5,16 @@
 // uno de ellos, crea una migración nueva que actualice la base de datos; tests/db.test.js verifica
 // que ambos coincidan.
 
+// C1: largo de nombres y de apellidos, en caracteres.
+export const MINIMO_CARACTERES_NOMBRE = 2;
+export const MAXIMO_CARACTERES_NOMBRE = 60;
+
+// C2: dígitos del DNI.
+export const LARGO_DNI = 8;
+
+// E1: largo máximo de un correo (RFC 5321).
+export const MAXIMO_CARACTERES_CORREO = 254;
+
 // C1: letras de nombres y apellidos que no son ASCII (además de a–z y A–Z).
 // Las columnas nombres_busqueda y apellidos_busqueda (migración 003) les quitan la tilde
 // exactamente a estas letras (B2).

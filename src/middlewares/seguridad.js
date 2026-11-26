@@ -26,3 +26,13 @@ export function cabecerasDeSeguridad({ produccion }) {
     xFrameOptions: { action: 'deny' },
   });
 }
+
+// Las páginas dinámicas no se guardan en la caché del navegador ni de un proxy:
+// - tienen datos personales, que no deben quedar en el disco ni verse con "Atrás" después de
+//   cerrar sesión;
+// - llevan el token CSRF de la sesión, y una copia vieja daría error 403 al enviar el formulario.
+// Los archivos estáticos se atienden antes de este middleware, así que siguen guardándose en caché.
+export function sinCache(req, res, next) {
+  res.set('Cache-Control', 'no-store');
+  next();
+}

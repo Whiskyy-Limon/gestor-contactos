@@ -1,0 +1,85 @@
+<%- include('../partials/cabecera') %>
+<section class="tarjeta tarjeta--ancha">
+  <h1><%= titulo %></h1>
+
+  <% if (Object.keys(errores).length > 0) { %>
+    <p class="alerta" role="alert">Revisa los campos marcados: hay datos que faltan o no son válidos.</p>
+  <% } %>
+
+  <%# novalidate: los mensajes de error salen todos del servidor, que es quien valida las reglas. -%>
+  <form method="post" action="<%= accion %>" class="formulario" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+
+    <%- include('../partials/campo', { campo: {
+      id: 'nombres', nombre: 'nombres', etiqueta: 'Nombres', valor: valores.nombres, error: errores.nombres,
+      atributos: { required: 'required', autocomplete: 'off' } } }) %>
+
+    <%- include('../partials/campo', { campo: {
+      id: 'apellidos', nombre: 'apellidos', etiqueta: 'Apellidos', valor: valores.apellidos, error: errores.apellidos,
+      atributos: { required: 'required', autocomplete: 'off' } } }) %>
+
+    <%- include('../partials/campo', { campo: {
+      id: 'dni', nombre: 'dni', etiqueta: 'DNI', valor: valores.dni, error: errores.dni,
+      atributos: { required: 'required', inputmode: 'numeric', autocomplete: 'off' } } }) %>
+    <% if (dniRepetido) { %>
+      <p class="campo__enlace">
+        <a href="/contactos/<%= dniRepetido.id %>">
+          <%= dniRepetido.archivado ? 'Ver el contacto archivado' : 'Ver el contacto' %>
+        </a>
+      </p>
+    <% } %>
+
+    <fieldset class="grupo"<% if (errores.tipo) { %> aria-describedby="error-tipo"<% } %>>
+      <legend>Tipo</legend>
+      <div class="opciones">
+        <% for (const tipo of tipos) { %>
+          <label class="opcion">
+            <input type="radio" name="tipo" value="<%= tipo %>"<%= valores.tipo === tipo ? ' checked' : '' %>>
+            <%= nombreDeTipo(tipo) %>
+          </label>
+        <% } %>
+      </div>
+      <% if (errores.tipo) { %>
+        <p class="campo__error" id="error-tipo"><%= errores.tipo %></p>
+      <% } %>
+    </fieldset>
+
+    <%# Sin JavaScript se ven todas las filas (las vacías se ignoran); public/js/filas.js muestra
+        solo las que tienen datos y agrega los botones "Agregar" y "Quitar". -%>
+    <fieldset class="grupo" data-filas data-texto-agregar="Agregar teléfono">
+      <legend>Teléfonos</legend>
+      <p class="grupo__ayuda">
+        Al menos 1 y hasta <%= valores.telefonos.length %>: celular (987 654 321), fijo de Lima
+        (01 234 5678) o fijo de provincia con su código (044 123456).
+      </p>
+      <% if (errores.telefonos) { %>
+        <p class="campo__error" id="error-telefonos"><%= errores.telefonos %></p>
+      <% } %>
+      <% valores.telefonos.forEach((telefono, i) => { %>
+        <%- include('../partials/campo', { campo: {
+          id: `telefono-${i + 1}`, nombre: 'telefonos', etiqueta: `Teléfono ${i + 1}`, valor: telefono,
+          error: errores[`telefonos.${i}`], tipo: 'tel', fila: true, atributos: { autocomplete: 'off' } } }) %>
+      <% }) %>
+    </fieldset>
+
+    <fieldset class="grupo" data-filas data-texto-agregar="Agregar correo">
+      <legend>Correos</legend>
+      <p class="grupo__ayuda">Al menos 1 y hasta <%= valores.correos.length %>.</p>
+      <% if (errores.correos) { %>
+        <p class="campo__error" id="error-correos"><%= errores.correos %></p>
+      <% } %>
+      <% valores.correos.forEach((correo, i) => { %>
+        <%- include('../partials/campo', { campo: {
+          id: `correo-${i + 1}`, nombre: 'correos', etiqueta: `Correo ${i + 1}`, valor: correo,
+          error: errores[`correos.${i}`], tipo: 'email', fila: true, atributos: { autocomplete: 'off' } } }) %>
+      <% }) %>
+    </fieldset>
+
+    <div class="acciones">
+      <button type="submit" class="boton">Guardar contacto</button>
+      <a href="/" class="boton boton--secundario">Cancelar</a>
+    </div>
+  </form>
+</section>
+<script src="/js/filas.js" defer></script>
+<%- include('../partials/pie') %>

@@ -8,8 +8,11 @@
 </head>
 <body>
   <header class="barra">
-    <span class="marca">Gestor de contactos</span>
+    <a class="marca" href="/">Gestor de contactos</a>
     <% if (locals.usuario) { %>
+      <nav class="barra__nav" aria-label="Principal">
+        <a href="/contactos/nuevo">Nuevo contacto</a>
+      </nav>
       <form method="post" action="/logout" class="barra__salir">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <span class="barra__usuario"><%= usuario.nombre %></span>
@@ -18,3 +21,6 @@
     <% } %>
   </header>
   <main class="contenido">
+    <% if (locals.aviso) { %>
+      <p class="aviso" role="status"><%= aviso %></p>
+    <% } %>

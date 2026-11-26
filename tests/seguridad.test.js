@@ -274,4 +274,24 @@ describe('seguridad', () => {
       assert.equal(respuesta.headers['x-content-type-options'], 'nosniff');
     });
   });
+
+  describe('caché', () => {
+    it('las páginas dinámicas se envían con Cache-Control: no-store, también el login y los errores', async () => {
+      const agente = request.agent(entorno.app);
+      assert.equal((await agente.get('/login')).headers['cache-control'], 'no-store');
+
+      await iniciarSesion(agente);
+      for (const ruta of ['/', '/contactos/nuevo', '/no-existe']) {
+        assert.equal((await agente.get(ruta)).headers['cache-control'], 'no-store', ruta);
+      }
+    });
+
+    it('los archivos estáticos sí se pueden guardar en caché', async () => {
+      for (const ruta of ['/css/estilos.css', '/js/filas.js']) {
+        const respuesta = await request(entorno.app).get(ruta);
+        assert.equal(respuesta.status, 200, ruta);
+        assert.doesNotMatch(respuesta.headers['cache-control'], /no-store/, ruta);
+      }
+    });
+  });
 });

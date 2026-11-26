@@ -1,15 +1,6 @@
 import { z } from 'zod';
-import { MAXIMO_BYTES_PASSWORD, MINIMO_CARACTERES_PASSWORD } from './reglas.js';
-
-const correo = z
-  .string({ error: 'El correo es obligatorio.' })
-  .trim()
-  .toLowerCase()
-  .pipe(
-    z
-      .email({ error: 'El correo no es válido.' })
-      .max(254, { error: 'El correo no puede tener más de 254 caracteres.' }),
-  );
+import { esquemaCorreo } from './correo.js';
+import { MAXIMO_BYTES_PASSWORD, MAXIMO_CARACTERES_CORREO, MINIMO_CARACTERES_PASSWORD } from './reglas.js';
 
 // U2. La contraseña no se recorta: los espacios pueden ser parte de ella.
 const password = z
@@ -26,7 +17,7 @@ const password = z
 // Datos del formulario de login (U4). Solo se revisa la forma: cualquier problema se responde con
 // el mismo mensaje genérico que una contraseña incorrecta, para no dar pistas.
 export const esquemaLogin = z.object({
-  correo: z.string().trim().toLowerCase().max(254),
+  correo: z.string().trim().toLowerCase().max(MAXIMO_CARACTERES_CORREO),
   password: z
     .string()
     .min(1)
@@ -40,6 +31,6 @@ export const esquemaNuevoUsuario = z.object({
     .trim()
     .min(2, { error: 'El nombre debe tener al menos 2 caracteres.' })
     .max(100, { error: 'El nombre no puede tener más de 100 caracteres.' }),
-  correo,
+  correo: esquemaCorreo,
   password,
 });

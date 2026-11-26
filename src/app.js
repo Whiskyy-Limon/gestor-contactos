@@ -2,12 +2,15 @@ import path from 'node:path';
 import express from 'express';
 import { config } from './config/index.js';
 import { requiereSesion } from './middlewares/auth.js';
+import { avisos } from './middlewares/avisos.js';
 import { proteccionCsrf } from './middlewares/csrf.js';
 import { manejarErrores, noEncontrado } from './middlewares/errores.js';
-import { cabecerasDeSeguridad } from './middlewares/seguridad.js';
+import { cabecerasDeSeguridad, sinCache } from './middlewares/seguridad.js';
 import { crearSesion } from './middlewares/sesion.js';
 import { crearRutaLogout, crearRutasLogin } from './routes/auth.js';
+import { crearRutasContactos } from './routes/contactos.js';
 import inicioRouter from './routes/inicio.js';
+import * as ayudantes from './views/ayudantes.js';
 
 const CARPETA_PUBLICA = path.join(import.meta.dirname, '..', 'public');
 const CARPETA_VISTAS = path.join(import.meta.dirname, 'views');
@@ -36,6 +39,8 @@ export function crearApp({
   app.set('trust proxy', trustProxy);
   app.set('view engine', 'ejs');
   app.set('views', CARPETA_VISTAS);
+  // Funciones de presentación (fechas, teléfonos, iniciales) disponibles en todas las vistas.
+  Object.assign(app.locals, ayudantes);
 
   // 1. Cabeceras de seguridad (CSP, HSTS, etc.) en todas las respuestas, también en los estáticos.
   app.use(cabecerasDeSeguridad({ produccion }));
@@ -43,32 +48,38 @@ export function crearApp({
   // 2. Archivos estáticos: antes de la sesión, así el CSS no consulta la base de datos.
   app.use(express.static(CARPETA_PUBLICA, { index: false }));
 
-  // 3. Formularios (application/x-www-form-urlencoded), con un límite de tamaño.
+  // 3. Desde aquí todo es dinámico: Cache-Control: no-store (datos personales y token CSRF).
+  app.use(sinCache);
+
+  // 4. Formularios (application/x-www-form-urlencoded), con un límite de tamaño.
+  //    extended: false → un campo repetido (name="telefonos" en varias filas) llega como lista.
   app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
-  // 4. Sesión guardada en SQLite.
+  // 5. Sesión guardada en SQLite, y los avisos de una sola vez que se guardan en ella.
   const sesion = crearSesion({ db, secreto: sessionSecret, produccion });
   app.use(sesion.middleware);
+  app.use(avisos);
 
-  // 5. CSRF: todo POST/PUT/PATCH/DELETE debe traer el token de la sesión, también el login.
+  // 6. CSRF: todo POST/PUT/PATCH/DELETE debe traer el token de la sesión, también el login.
   app.use(proteccionCsrf);
 
-  // 6. Rutas públicas.
+  // 7. Rutas públicas.
   app.use(crearRutasLogin(db));
 
-  // 7. Desde aquí todo exige sesión iniciada. Toda ruta nueva se registra DEBAJO de esta línea,
+  // 8. Desde aquí todo exige sesión iniciada. Toda ruta nueva se registra DEBAJO de esta línea,
   //    así queda protegida por defecto.
   app.use(requiereSesion(db));
 
-  // 8. Rutas protegidas.
+  // 9. Rutas protegidas.
   app.use(inicioRouter);
+  app.use(crearRutasContactos(db));
   app.use(crearRutaLogout(sesion));
 
-  // 9. Página no encontrada (solo la ve quien tiene sesión: al resto el paso 7 lo manda al login,
-  //    así no se revela qué rutas existen).
+  // 10. Página no encontrada (solo la ve quien tiene sesión: al resto el paso 8 lo manda al login,
+  //     así no se revela qué rutas existen).
   app.use(noEncontrado(registrarError));
 
-  // 10. Errores: página genérica, sin stack.
+  // 11. Errores: página genérica, sin stack.
   app.use(manejarErrores(registrarError));
 
   return app;

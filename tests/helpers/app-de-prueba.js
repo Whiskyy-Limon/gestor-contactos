@@ -49,6 +49,28 @@ export async function iniciarSesion(agente, { correo = CORREO, password = PASSWO
   return agente.post('/login').type('form').send({ correo, password, _csrf: tokenCsrf(formulario.text) });
 }
 
+// Cuerpo de un formulario codificado como lo envía un navegador: una lista se envía repitiendo el
+// nombre del campo (telefonos=a&telefonos=b), no como telefonos[0]=a, que es lo que haría supertest.
+export function codificarFormulario(datos) {
+  const cuerpo = new URLSearchParams();
+  for (const [campo, valor] of Object.entries(datos)) {
+    for (const item of Array.isArray(valor) ? valor : [valor]) {
+      cuerpo.append(campo, item);
+    }
+  }
+  return cuerpo.toString();
+}
+
+// Envía un formulario como un navegador: abre la página que lo contiene (para tomar el token CSRF)
+// y lo envía a `accion`. Devuelve la respuesta del envío.
+export async function enviarFormulario(agente, { pagina, accion = pagina, datos }) {
+  const formulario = await agente.get(pagina);
+  return agente
+    .post(accion)
+    .type('form')
+    .send(codificarFormulario({ ...datos, _csrf: tokenCsrf(formulario.text) }));
+}
+
 // Cierra sesión como un navegador: toma el token del botón "Cerrar sesión" de la página de inicio.
 export async function cerrarSesion(agente) {
   const pagina = await agente.get('/');

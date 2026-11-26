@@ -10,9 +10,13 @@ import { aplicarMigraciones, migracionesPendientes } from '../src/db/migraciones
 import { normalizarParaBusqueda } from '../src/services/busqueda.js';
 import {
   CODIGOS_AREA_PROVINCIA,
+  LARGO_DNI,
   LETRAS_NO_ASCII_NOMBRE,
+  MAXIMO_CARACTERES_CORREO,
+  MAXIMO_CARACTERES_NOMBRE,
   MAXIMO_CORREOS_POR_CONTACTO,
   MAXIMO_TELEFONOS_POR_CONTACTO,
+  MINIMO_CARACTERES_NOMBRE,
   TIPOS_CONTACTO,
 } from '../src/validators/reglas.js';
 
@@ -221,6 +225,46 @@ describe('esquema de la base de datos', () => {
         code: 'SQLITE_CONSTRAINT_TRIGGER',
         message: /más de 5 correos/,
       });
+    });
+  });
+
+  describe('largos de texto (C1, C2, E1)', () => {
+    // true si la base de datos acepta el cambio; false si lo rechaza un CHECK.
+    function acepta(accion) {
+      try {
+        accion();
+        return true;
+      } catch (error) {
+        assert.equal(error.code, 'SQLITE_CONSTRAINT_CHECK');
+        return false;
+      }
+    }
+
+    it('nombres y apellidos: la BD acepta exactamente el rango de reglas.js', () => {
+      let dni = 10000000;
+      const aceptaLargo = (campo, largo) =>
+        acepta(() => insertarContacto({ dni: String(dni++), [campo]: 'a'.repeat(largo) }));
+
+      for (const campo of ['nombres', 'apellidos']) {
+        assert.equal(aceptaLargo(campo, MINIMO_CARACTERES_NOMBRE - 1), false, campo);
+        assert.equal(aceptaLargo(campo, MINIMO_CARACTERES_NOMBRE), true, campo);
+        assert.equal(aceptaLargo(campo, MAXIMO_CARACTERES_NOMBRE), true, campo);
+        assert.equal(aceptaLargo(campo, MAXIMO_CARACTERES_NOMBRE + 1), false, campo);
+      }
+    });
+
+    it('DNI: la BD exige LARGO_DNI dígitos', () => {
+      assert.equal(acepta(() => insertarContacto({ dni: '1'.repeat(LARGO_DNI - 1) })), false);
+      assert.equal(acepta(() => insertarContacto({ dni: '1'.repeat(LARGO_DNI + 1) })), false);
+      assert.equal(acepta(() => insertarContacto({ dni: '1'.repeat(LARGO_DNI) })), true);
+    });
+
+    it('correo: la BD acepta hasta MAXIMO_CARACTERES_CORREO caracteres', () => {
+      const contactoId = insertarContacto();
+      const correoDeLargo = (largo) => `${'a'.repeat(largo - '@empresa.pe'.length)}@empresa.pe`;
+
+      assert.equal(acepta(() => insertarCorreo(contactoId, correoDeLargo(MAXIMO_CARACTERES_CORREO + 1))), false);
+      assert.equal(acepta(() => insertarCorreo(contactoId, correoDeLargo(MAXIMO_CARACTERES_CORREO))), true);
     });
   });
 

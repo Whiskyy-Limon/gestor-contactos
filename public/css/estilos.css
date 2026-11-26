@@ -9,11 +9,20 @@
   --color-primario-oscuro: #1a56db;
   --color-error-fondo: #fde8e8;
   --color-error-texto: #9b1c1c;
+  --color-aviso-fondo: #def7ec;
+  --color-aviso-texto: #03543f;
+  --color-tenue: #52606d;
   --radio: 8px;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Lo que se oculta con el atributo hidden (public/js/filas.js) se oculta siempre, aunque su clase
+   tenga otro display. */
+[hidden] {
+  display: none !important;
 }
 
 body {
@@ -36,6 +45,12 @@ body {
 
 .marca {
   font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.barra__nav {
+  margin-right: auto;
 }
 
 .barra__salir {
@@ -114,3 +129,188 @@ body {
   background: var(--color-error-fondo);
   border-radius: var(--radio);
 }
+
+.aviso {
+  max-width: 720px;
+  margin: 0 auto 1rem;
+  padding: 0.75rem;
+  color: var(--color-aviso-texto);
+  background: var(--color-aviso-fondo);
+  border-radius: var(--radio);
+}
+
+.tenue {
+  color: var(--color-tenue);
+}
+
+/* Formulario de contacto */
+
+.tarjeta--ancha {
+  max-width: 720px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.campo input[aria-invalid="true"] {
+  border-color: var(--color-error-texto);
+}
+
+.campo__error {
+  margin: 0;
+  color: var(--color-error-texto);
+  font-size: 0.9rem;
+}
+
+.campo__enlace {
+  margin: 0;
+}
+
+/* Fila de un grupo repetido: el botón "Quitar" (lo agrega public/js/filas.js) va al lado del campo. */
+.campo--fila {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 0.5rem;
+  row-gap: 0.25rem;
+}
+
+.campo--fila label,
+.campo--fila .campo__error {
+  grid-column: 1 / -1;
+}
+
+.formulario .campo--fila .boton--quitar {
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 0; /* sin el margen de .formulario .boton, que estiraba el campo */
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0;
+  padding: 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.grupo legend {
+  padding: 0 0.25rem;
+  font-weight: 600;
+}
+
+.grupo__ayuda {
+  margin: 0;
+  color: var(--color-tenue);
+  font-size: 0.9rem;
+}
+
+.grupo > .boton {
+  align-self: flex-start;
+}
+
+.opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.acciones {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+a.boton {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* Detalle de contacto */
+
+.ficha {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tarjeta h1.ficha__nombre {
+  margin: 0;
+}
+
+.etiquetas {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+}
+
+.etiqueta {
+  padding: 0.1rem 0.6rem;
+  font-size: 0.85rem;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+}
+
+.etiqueta--archivado {
+  color: var(--color-error-texto);
+  background: var(--color-error-fondo);
+  border-color: var(--color-error-fondo);
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+.datos dt {
+  font-weight: 600;
+}
+
+.datos dd {
+  margin: 0;
+}
+
+.lista-simple {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subtitulo {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+/* C4: avatar con iniciales. Texto blanco sobre colores con contraste suficiente (WCAG AA). */
+.avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  border-radius: 50%;
+}
+
+.avatar--0 { background: #1a56db; }
+.avatar--1 { background: #057a55; }
+.avatar--2 { background: #9f580a; }
+.avatar--3 { background: #c81e1e; }
+.avatar--4 { background: #6c2bd9; }
+.avatar--5 { background: #3f3f46; }

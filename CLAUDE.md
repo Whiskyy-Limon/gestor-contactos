@@ -24,6 +24,9 @@ Sistema web para que una pequeña empresa gestione sus contactos (clientes y pro
 - `src/app.js` exporta `crearApp({ db, sessionSecret, ... })`, que construye y devuelve la app sin escuchar en ningún puerto; `src/server.js` es el único que llama a `listen`.
 - Rutas: en `src/app.js` las públicas se registran antes de `requiereSesion` y todas las demás después. Así, una ruta nueva queda protegida por defecto.
 - Vistas EJS: siempre `<%= %>` (escapa HTML); `<%- %>` solo para `include`. Sin estilos ni scripts en línea (la CSP no los permite).
+- Formularios con filas repetidas (teléfonos, correos): todas las filas usan el mismo `name`; `express.urlencoded({ extended: false })` las entrega como lista y el validador deja cada error en su fila (`telefonos.2`), para mostrarlo junto a ese campo. El formulario funciona sin JavaScript; `public/js/filas.js` solo lo mejora.
+- Avisos de una sola vez ("Contacto creado."): `req.session.aviso = '…'` antes de redirigir; la cabecera lo muestra en la página siguiente.
+- Toda respuesta dinámica lleva `Cache-Control: no-store` (middleware `sinCache`); los archivos estáticos no.
 - CSRF: todo formulario POST lleva `<input type="hidden" name="_csrf" value="<%= csrfToken() %>">` (o la cabecera `X-CSRF-Token`). Pendiente para la etapa de fotos: el middleware global no puede leer el cuerpo de un formulario multipart (lo lee multer, más adelante), así que hoy lo rechazaría con 403. Esas rutas tendrán que quedar fuera de la verificación global y verificar el token ellas mismas, después de multer.
 - Errores: nunca se muestra el stack ni el mensaje interno al usuario. Para un error del cliente, lanzar un error con `status` (4xx) y, si hace falta, `mensajePublico` en español.
 - Las pruebas viven en `tests/` y se llaman `*.test.js`. Las utilidades compartidas van en `tests/helpers/` (por ejemplo `app-de-prueba.js`: base de datos en memoria, usuario de prueba y secreto propio).
@@ -49,7 +52,7 @@ src/
   services/         lógica de negocio y acceso a datos
   validators/       esquemas zod
   middlewares/      auth, csrf, errores, upload
-  views/            plantillas EJS
+  views/            plantillas EJS y ayudantes.js (presentación: fechas, teléfonos, iniciales)
 docs/               reglas de negocio (REGLAS-NEGOCIO.md)
 public/             CSS y archivos estáticos
 storage/uploads/    fotos subidas; FUERA de public, se sirven por una ruta protegida

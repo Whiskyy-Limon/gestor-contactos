@@ -1,0 +1,20 @@
+<%#
+  Campo de texto con su etiqueta y, si lo hay, su mensaje de error.
+  Recibe `campo`: { id, nombre, etiqueta, valor, error, tipo, fila, atributos }.
+    fila       true si es una fila de un grupo repetido (teléfonos, correos); public/js/filas.js la usa.
+    atributos  otros atributos del input, por ejemplo { autocomplete: 'off' }.
+-%>
+<div class="campo<%= campo.fila ? ' campo--fila' : '' %>"<% if (campo.fila) { %> data-fila<% } %>>
+  <label for="<%= campo.id %>"><%= campo.etiqueta %></label>
+  <input id="<%= campo.id %>" name="<%= campo.nombre %>" type="<%= campo.tipo || 'text' %>" value="<%= campo.valor %>"
+    <%_ for (const [atributo, valor] of Object.entries(campo.atributos || {})) { _%>
+    <%= atributo %>="<%= valor %>"
+    <%_ } _%>
+    <%_ if (campo.error) { _%>
+    aria-invalid="true" aria-describedby="error-<%= campo.id %>"
+    <%_ } _%>
+  >
+  <% if (campo.error) { %>
+    <p class="campo__error" id="error-<%= campo.id %>"><%= campo.error %></p>
+  <% } %>
+</div>

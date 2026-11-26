@@ -1,0 +1,54 @@
+<%- include('../partials/cabecera') %>
+<article class="tarjeta tarjeta--ancha">
+  <header class="ficha">
+    <%- include('../partials/avatar', { contacto }) %>
+    <div>
+      <h1 class="ficha__nombre"><%= contacto.nombres %> <%= contacto.apellidos %></h1>
+      <p class="etiquetas">
+        <span class="etiqueta"><%= nombreDeTipo(contacto.tipo) %></span>
+        <% if (contacto.archivado) { %>
+          <span class="etiqueta etiqueta--archivado">Archivado</span>
+        <% } %>
+      </p>
+    </div>
+  </header>
+
+  <dl class="datos">
+    <dt>DNI</dt>
+    <dd><%= contacto.dni %></dd>
+
+    <dt>Teléfonos</dt>
+    <dd>
+      <ul class="lista-simple">
+        <% for (const telefono of contacto.telefonos) { %>
+          <li><%= formatearTelefono(telefono.numero, telefono.tipo) %> <span class="tenue">· <%= telefono.tipo %></span></li>
+        <% } %>
+      </ul>
+    </dd>
+
+    <dt>Correos</dt>
+    <dd>
+      <ul class="lista-simple">
+        <% for (const correo of contacto.correos) { %>
+          <li><a href="mailto:<%= correo %>"><%= correo %></a></li>
+        <% } %>
+      </ul>
+    </dd>
+  </dl>
+
+  <%# A1: quién y cuándo. -%>
+  <h2 class="subtitulo">Registro de cambios</h2>
+  <dl class="datos datos--auditoria">
+    <dt>Creado</dt>
+    <dd><%= contacto.auditoria.creado.por %> · <%= formatearFecha(contacto.auditoria.creado.en) %></dd>
+
+    <dt>Última modificación</dt>
+    <dd><%= contacto.auditoria.actualizado.por %> · <%= formatearFecha(contacto.auditoria.actualizado.en) %></dd>
+
+    <% if (contacto.auditoria.archivado) { %>
+      <dt>Archivado</dt>
+      <dd><%= contacto.auditoria.archivado.por %> · <%= formatearFecha(contacto.auditoria.archivado.en) %></dd>
+    <% } %>
+  </dl>
+</article>
+<%- include('../partials/pie') %>

@@ -8,6 +8,17 @@ export class ErrorDeValidacion extends Error {
   }
 }
 
+// { campo: mensaje } con el primer mensaje de cada campo, para mostrarlo junto a ese campo en un
+// formulario. Un campo puede fallar en varias reglas a la vez (por ejemplo, vacío y sin el formato);
+// basta con mostrar la primera.
+export function erroresPorCampo(errores) {
+  const porCampo = {};
+  for (const { campo, mensaje } of errores) {
+    porCampo[campo] ??= mensaje;
+  }
+  return porCampo;
+}
+
 // Valida `datos` con un esquema zod. Devuelve los datos ya limpios (con trim, minúsculas, etc.)
 // o lanza ErrorDeValidacion con todos los problemas encontrados.
 export function validar(esquema, datos) {
