@@ -298,12 +298,22 @@ describe('contactos: crear y ver', () => {
       assert.match(html, /etiqueta--archivado">Archivado/);
     });
 
-    it('el detalle muestra un avatar con las iniciales (C4)', async () => {
+    it('el detalle muestra un avatar grande con las iniciales (C4)', async () => {
       const id = crear();
 
       const html = (await agente.get(`/contactos/${id}`)).text;
 
-      assert.match(html, /<span class="avatar avatar--\d" aria-hidden="true">JÁ<\/span>/);
+      assert.match(html, /<span class="avatar avatar--\d avatar--grande" aria-hidden="true">JÁ<\/span>/);
+    });
+
+    it('el detalle muestra el tipo con la etiqueta de su color (C6)', async () => {
+      for (const [tipo, texto] of [['cliente', 'Cliente'], ['proveedor', 'Proveedor'], ['ambos', 'Cliente y proveedor']]) {
+        const id = crear({ tipo, dni: String(20000000 + texto.length) });
+
+        const html = (await agente.get(`/contactos/${id}`)).text;
+
+        assert.ok(html.includes(`<span class="etiqueta etiqueta--${tipo}">${texto}</span>`), `etiqueta de ${tipo}`);
+      }
     });
   });
 });

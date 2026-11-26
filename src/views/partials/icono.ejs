@@ -1,0 +1,13 @@
+<%#
+  Íconos de línea (SVG propio, toman el color del texto). Son decorativos: siempre van junto a un
+  texto que dice lo mismo. Recibe `icono` (mas, buscar, archivo) y, opcionalmente, `clase`.
+-%>
+<svg class="icono <%= locals.clase ?? '' %>" viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<% if (icono === 'mas') { -%>
+  <path d="M10 4.5v11M4.5 10h11"/>
+<% } else if (icono === 'buscar') { -%>
+  <circle cx="9" cy="9" r="5.25"/><path d="m13 13 3.5 3.5"/>
+<% } else if (icono === 'archivo') { -%>
+  <rect x="3" y="4" width="14" height="4" rx="1"/><path d="M4.5 8v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8M8.5 11h3"/>
+<% } -%>
+</svg>

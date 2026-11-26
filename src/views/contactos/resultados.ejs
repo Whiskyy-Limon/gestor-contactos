@@ -21,31 +21,34 @@
   <% } else { %>
     <p class="resumen">Mostrando <%= resultado.desde %>–<%= resultado.hasta %> de <%= resultado.total %></p>
 
+    <%# En celular cada fila se ve como una tarjeta (solo CSS). Los roles ARIA repiten los de la
+        tabla porque, al cambiar su display, algunos navegadores dejan de anunciarla como tabla.
+        data-etiqueta es el rótulo que se ve junto a cada dato en la tarjeta. Toda la fila lleva al
+        detalle: el enlace del nombre se estira sobre ella con CSS (sigue siendo un solo enlace). -%>
     <div class="tabla-contenedor">
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th scope="col">Nombre</th>
-            <th scope="col">DNI</th>
-            <th scope="col">Teléfono</th>
-            <th scope="col">Correo</th>
+      <table class="tabla" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Nombre</th>
+            <th scope="col" role="columnheader">Tipo</th>
+            <th scope="col" role="columnheader">DNI</th>
+            <th scope="col" role="columnheader">Teléfono</th>
+            <th scope="col" role="columnheader">Correo</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           <% for (const contacto of resultado.contactos) { %>
-            <tr>
-              <td>
+            <tr role="row">
+              <td role="cell">
                 <div class="tabla__nombre">
                   <%- include('../partials/avatar', { contacto, chico: true }) %>
-                  <div>
-                    <a href="/contactos/<%= contacto.id %>"><%= contacto.apellidos %>, <%= contacto.nombres %></a>
-                    <span class="tabla__tipo tenue"><%= nombreDeTipo(contacto.tipo) %></span>
-                  </div>
+                  <a href="/contactos/<%= contacto.id %>"><%= contacto.apellidos %>, <%= contacto.nombres %></a>
                 </div>
               </td>
-              <td><%= contacto.dni %></td>
-              <td><%= contacto.telefono ? formatearTelefono(contacto.telefono.numero, contacto.telefono.tipo) : '' %></td>
-              <td><%= contacto.correo ?? '' %></td>
+              <td role="cell" class="tabla__tipo"><span class="etiqueta etiqueta--<%= contacto.tipo %>"><%= nombreDeTipo(contacto.tipo) %></span></td>
+              <td role="cell" class="tabla__numero" data-etiqueta="DNI"><%= contacto.dni %></td>
+              <td role="cell" class="tabla__numero" data-etiqueta="Teléfono"><%= contacto.telefono ? formatearTelefono(contacto.telefono.numero, contacto.telefono.tipo) : '' %></td>
+              <td role="cell" class="tabla__correo" data-etiqueta="Correo"><%= contacto.correo ?? '' %></td>
             </tr>
           <% } %>
         </tbody>

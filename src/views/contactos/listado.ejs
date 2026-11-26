@@ -2,7 +2,7 @@
 <section class="tarjeta tarjeta--listado">
   <div class="encabezado">
     <h1 data-titulo-listado><%= titulo %></h1>
-    <a href="/contactos/nuevo" class="boton">Nuevo contacto</a>
+    <a href="/contactos/nuevo" class="boton"><%- include('../partials/icono', { icono: 'mas' }) %>Nuevo contacto</a>
   </div>
 
   <%# B1: búsqueda y filtros. Es un formulario GET: sin JavaScript funciona con el botón "Buscar" o
@@ -11,8 +11,11 @@
   <form method="get" action="/contactos" class="filtros" role="search" data-busqueda-en-vivo="resultados">
     <div class="campo filtros__busqueda">
       <label for="q">Buscar</label>
-      <input id="q" name="q" type="search" value="<%= filtros.q %>" maxlength="<%= maximoBusqueda %>"
-        placeholder="Nombre, DNI, teléfono o correo" autocomplete="off" aria-controls="resultados">
+      <div class="campo-busqueda">
+        <%- include('../partials/icono', { icono: 'buscar', clase: 'campo-busqueda__icono' }) %>
+        <input id="q" name="q" type="search" value="<%= filtros.q %>" maxlength="<%= maximoBusqueda %>"
+          placeholder="Nombre, DNI, teléfono o correo" autocomplete="off" aria-controls="resultados">
+      </div>
     </div>
     <div class="campo">
       <label for="tipo">Tipo</label>

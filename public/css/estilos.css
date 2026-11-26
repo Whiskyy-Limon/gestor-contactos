@@ -45,6 +45,14 @@
   --color-exito-borde: #b6e2c8;
   --color-exito-texto: #146c43;
 
+  /* Etiquetas de tipo de contacto (C6): el texto siempre dice el tipo; el color ayuda a ubicarlo. */
+  --color-cliente-texto: #1e4fb8;
+  --color-cliente-fondo: #e3edff;
+  --color-proveedor-texto: #8a4508;
+  --color-proveedor-fondo: #fdf1d8;
+  --color-ambos-texto: #6b21a8;
+  --color-ambos-fondo: #f3e8ff;
+
   /* Avatares con iniciales (C4): texto blanco, 5,3:1 o más en ambos modos. */
   --color-sobre-avatar: #ffffff;
   --color-avatar-0: #1a56db;
@@ -81,6 +89,7 @@
   --texto-base: 1rem;
   --texto-lg: 1.125rem;
   --texto-xl: 1.5rem;
+  --texto-2xl: 1.75rem;
 
   /* Controles y movimiento */
   --alto-control: 2.75rem; /* 44 px: cómodo para el dedo */
@@ -115,6 +124,12 @@
     --color-exito-fondo: #0f3324;
     --color-exito-borde: #1f5a40;
     --color-exito-texto: #8fe0b5;
+    --color-cliente-texto: #a9c6ff;
+    --color-cliente-fondo: #1a2a4a;
+    --color-proveedor-texto: #f5c66e;
+    --color-proveedor-fondo: #3a2a0e;
+    --color-ambos-texto: #d8b9ff;
+    --color-ambos-fondo: #33204d;
 
     /* En oscuro las sombras casi no se ven: las tarjetas se distinguen por su borde. */
     --sombra-tarjeta: none;
@@ -281,7 +296,7 @@ a:hover {
 }
 
 .contenido {
-  max-width: 960px;
+  max-width: 1120px;
   margin: var(--espacio-8) auto;
   padding: 0 var(--espacio-4);
 }
@@ -768,6 +783,40 @@ input[type="file"]::file-selector-button:hover {
   border-color: var(--color-error-borde);
 }
 
+.etiqueta--cliente,
+.etiqueta--proveedor,
+.etiqueta--ambos {
+  border-color: transparent;
+}
+
+.etiqueta--cliente {
+  color: var(--color-cliente-texto);
+  background: var(--color-cliente-fondo);
+}
+
+.etiqueta--proveedor {
+  color: var(--color-proveedor-texto);
+  background: var(--color-proveedor-fondo);
+}
+
+.etiqueta--ambos {
+  color: var(--color-ambos-texto);
+  background: var(--color-ambos-fondo);
+}
+
+/* Íconos de línea (partials/icono.ejs). */
+.icono {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Números (DNI, teléfonos) con cifras del mismo ancho, para que se alineen. */
+.numero {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* C4: avatar con iniciales o con la foto. */
 .avatar {
   display: inline-flex;
@@ -790,6 +839,13 @@ input[type="file"]::file-selector-button:hover {
   width: 2.25rem;
   height: 2.25rem;
   font-size: var(--texto-sm);
+}
+
+/* Avatar de la ficha del contacto. */
+.avatar--grande {
+  width: 6rem;
+  height: 6rem;
+  font-size: var(--texto-2xl);
 }
 
 /* Avatar del usuario en la cabecera. */
@@ -878,55 +934,86 @@ input[type="file"]::file-selector-button:hover {
   }
 }
 
-/* Detalle de contacto */
+/* Ficha del contacto (detalle): cabecera con la foto grande, el nombre, las etiquetas y las
+   acciones; luego secciones separadas por una línea, y al pie el registro de cambios. */
 
-.ficha {
+.volver a {
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  text-decoration: none;
+}
+
+.volver a:hover {
+  color: var(--color-texto);
+  text-decoration: underline;
+}
+
+.ficha__cabecera {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--espacio-4);
-  margin-bottom: var(--espacio-4);
+  gap: var(--espacio-4) var(--espacio-5);
+  padding-bottom: var(--espacio-6);
+}
+
+.ficha__titulo {
+  flex: 1 1 14rem;
+  min-width: 0;
 }
 
 .tarjeta h1.ficha__nombre {
   margin: 0;
+  font-size: var(--texto-2xl);
+  overflow-wrap: anywhere;
 }
 
-/* Detalle de un contacto archivado (C5): aviso y botón "Restaurar". */
-.archivado {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--espacio-3);
-  margin-bottom: var(--espacio-4);
-  padding: var(--espacio-3) var(--espacio-4);
-  color: var(--color-error-texto);
-  background: var(--color-error-fondo);
-  border: 1px solid var(--color-error-borde);
-  border-radius: var(--radio-control);
+.ficha__titulo .etiquetas {
+  margin-top: var(--espacio-2);
 }
 
-.archivado p {
-  margin: 0;
+.ficha__acciones {
+  align-self: flex-start;
 }
 
-.acciones--ficha {
-  margin-bottom: var(--espacio-5);
+.ficha__seccion {
+  padding: var(--espacio-6) 0;
+  border-top: 1px solid var(--color-borde);
 }
 
-.datos {
+.ficha__subtitulo {
+  margin: 0 0 var(--espacio-4);
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+/* Datos de contacto: cada dato con su rótulo arriba; tantas columnas como quepan. */
+.datos-contacto {
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--espacio-2) var(--espacio-6);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--espacio-5) var(--espacio-6);
   margin: 0;
 }
 
-.datos dt {
+.datos-contacto dt {
+  margin-bottom: var(--espacio-1);
+  font-size: var(--texto-sm);
   font-weight: 600;
+  color: var(--color-texto-suave);
 }
 
-.datos dd {
+.datos-contacto dd {
   margin: 0;
+}
+
+.datos-contacto li + li {
+  margin-top: var(--espacio-1);
+}
+
+.datos-contacto a {
+  overflow-wrap: anywhere;
 }
 
 .lista-simple {
@@ -935,16 +1022,54 @@ input[type="file"]::file-selector-button:hover {
   list-style: none;
 }
 
-.subtitulo {
-  margin: var(--espacio-6) 0 var(--espacio-3);
-  font-size: var(--texto-lg);
+/* A1: registro de cambios, en letra más chica al pie de la ficha. */
+.ficha__pie {
+  padding-top: var(--espacio-6);
+  border-top: 1px solid var(--color-borde);
+}
+
+.auditoria {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--espacio-2) var(--espacio-5);
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.auditoria dt {
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.auditoria dd {
+  margin: 0;
+}
+
+/* Contacto archivado (C5): franja arriba de la ficha, con "Restaurar" como acción principal. */
+.archivado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3) var(--espacio-4);
+  margin-bottom: var(--espacio-6);
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-sm);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-control);
+}
+
+.archivado__icono {
+  color: var(--color-texto-suave);
+}
+
+.archivado p {
+  flex: 1 1 14rem;
+  margin: 0;
 }
 
 /* Formulario de la foto en el detalle */
-.foto {
-  margin-bottom: var(--espacio-5);
-}
-
 .foto__formulario {
   display: flex;
   flex-wrap: wrap;
@@ -962,7 +1087,46 @@ input[type="file"]::file-selector-button:hover {
   margin-top: var(--espacio-3);
 }
 
+@media (max-width: 40rem) {
+  .avatar--grande {
+    width: 4.5rem;
+    height: 4.5rem;
+    font-size: var(--texto-xl);
+  }
+
+  .ficha__titulo {
+    flex-basis: 10rem;
+  }
+
+  .tarjeta h1.ficha__nombre {
+    font-size: var(--texto-xl);
+  }
+
+  .ficha__acciones {
+    flex-basis: 100%;
+  }
+
+  .ficha__acciones .boton {
+    flex: 1 1 0;
+  }
+
+  /* El registro de cambios se apila: rótulo arriba, quién y cuándo abajo. */
+  .auditoria {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+  }
+
+  .auditoria dd + dt {
+    margin-top: var(--espacio-2);
+  }
+}
+
 /* Listado de contactos */
+
+/* El aviso de una sola vez ocupa el ancho del listado (en las demás páginas, el de la tarjeta). */
+.contenido:has(> .tarjeta--listado) > .aviso {
+  max-width: none;
+}
 
 .encabezado {
   display: flex;
@@ -970,7 +1134,7 @@ input[type="file"]::file-selector-button:hover {
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-3);
-  margin-bottom: var(--espacio-4);
+  margin-bottom: var(--espacio-5);
 }
 
 .tarjeta .encabezado h1 {
@@ -982,11 +1146,15 @@ input[type="file"]::file-selector-button:hover {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--espacio-3);
-  margin-bottom: var(--espacio-4);
+  margin-bottom: var(--espacio-5);
 }
 
 .filtros__busqueda {
-  flex: 1 1 16rem;
+  flex: 1 1 18rem;
+}
+
+.filtros > .campo:not(.filtros__busqueda) {
+  flex: 0 1 11rem;
 }
 
 .filtros__acciones {
@@ -994,9 +1162,37 @@ input[type="file"]::file-selector-button:hover {
   gap: var(--espacio-2);
 }
 
-.resumen,
-.vacio {
+/* Campo de búsqueda con la lupa adentro. */
+.campo-busqueda {
+  position: relative;
+}
+
+.campo-busqueda__icono {
+  position: absolute;
+  top: 50%;
+  left: var(--espacio-3);
   color: var(--color-texto-suave);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.campo-busqueda input {
+  padding-left: var(--espacio-10);
+}
+
+.resumen {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.vacio {
+  margin: 0;
+  padding: var(--espacio-10) var(--espacio-4);
+  text-align: center;
+  color: var(--color-texto-suave);
+  border: 1px dashed var(--color-borde-boton);
+  border-radius: var(--radio-tarjeta);
 }
 
 /* Mientras llega una búsqueda en vivo, la lista anterior se atenúa. */
@@ -1005,7 +1201,9 @@ input[type="file"]::file-selector-button:hover {
   transition: opacity var(--transicion);
 }
 
+/* Tabla: llega a los bordes de la tarjeta, así el resaltado de la fila ocupa todo el ancho. */
 .tabla-contenedor {
+  margin: 0 calc(-1 * var(--espacio-6));
   overflow-x: auto;
 }
 
@@ -1016,15 +1214,43 @@ input[type="file"]::file-selector-button:hover {
 
 .tabla th,
 .tabla td {
-  padding: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
   text-align: left;
   vertical-align: middle;
   border-bottom: 1px solid var(--color-borde);
 }
 
+.tabla th:first-child,
+.tabla td:first-child {
+  padding-left: var(--espacio-6);
+}
+
+.tabla th:last-child,
+.tabla td:last-child {
+  padding-right: var(--espacio-6);
+}
+
 .tabla th {
-  font-size: var(--texto-sm);
+  padding-top: var(--espacio-2);
+  padding-bottom: var(--espacio-2);
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--color-texto-suave);
+}
+
+.tabla tbody tr {
+  position: relative;
+  transition: background-color var(--transicion);
+}
+
+.tabla tbody tr:hover {
+  background: var(--color-superficie-suave);
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .tabla__nombre {
@@ -1033,15 +1259,153 @@ input[type="file"]::file-selector-button:hover {
   gap: var(--espacio-3);
 }
 
-.tabla__tipo {
-  display: block;
-  font-size: var(--texto-sm);
+/* El enlace del nombre se estira sobre toda la fila: un clic en cualquier parte abre el detalle.
+   Con el teclado, el foco se dibuja alrededor de la fila entera. */
+.tabla__nombre a {
+  font-weight: 600;
+  color: var(--color-texto);
+  text-decoration: none;
+}
+
+.tabla__nombre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.tabla tbody tr:hover .tabla__nombre a {
+  text-decoration: underline;
+}
+
+.tabla__nombre a:focus-visible {
+  outline: none;
+}
+
+.tabla__nombre a:focus-visible::after {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+  border-radius: var(--radio-control);
+}
+
+.tabla__numero {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabla__correo {
+  color: var(--color-texto-suave);
+  overflow-wrap: anywhere;
 }
 
 .paginacion {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: var(--espacio-6);
-  margin-top: var(--espacio-4);
+  gap: var(--espacio-3) var(--espacio-5);
+  margin-top: var(--espacio-5);
+  font-size: var(--texto-sm);
+}
+
+.paginacion span {
+  color: var(--color-texto-suave);
+}
+
+.paginacion a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alto-control);
+  padding: 0 var(--espacio-4);
+  font-weight: 600;
+  color: var(--color-texto);
+  text-decoration: none;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-boton);
+  border-radius: var(--radio-control);
+  transition: background-color var(--transicion);
+}
+
+.paginacion a:hover {
+  background: var(--color-superficie-suave);
+}
+
+/* Celular: cada fila es una tarjeta. Arriba el avatar y el nombre; debajo, alineados con el
+   nombre, el tipo y cada dato con su rótulo (data-etiqueta). */
+@media (max-width: 40rem) {
+  .filtros > .campo:not(.filtros__busqueda) {
+    flex: 1 1 8rem;
+  }
+
+  .tabla-contenedor {
+    margin: 0;
+    overflow-x: visible;
+  }
+
+  .tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .tabla,
+  .tabla tr,
+  .tabla td {
+    display: block;
+  }
+
+  .tabla tbody {
+    display: grid;
+    gap: var(--espacio-2);
+  }
+
+  .tabla tbody tr {
+    padding: var(--espacio-3) var(--espacio-4);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-tarjeta);
+  }
+
+  .tabla td,
+  .tabla td:first-child,
+  .tabla td:last-child,
+  .tabla tbody tr:last-child td {
+    padding: 0;
+    border: 0;
+  }
+
+  /* Alineados con el nombre: el ancho del avatar chico más el espacio entre ambos. (Va después
+     de la regla anterior y con su misma especificidad, para que también se aplique al último dato.) */
+  .tabla td:not(:first-child) {
+    margin-top: var(--espacio-1);
+    padding-left: calc(2.25rem + var(--espacio-3));
+  }
+
+  .tabla td:empty {
+    display: none;
+  }
+
+  .tabla td[data-etiqueta] {
+    display: flex;
+    gap: var(--espacio-2);
+    font-size: var(--texto-sm);
+  }
+
+  /* El rótulo es solo visual (texto alternativo vacío): el lector de pantalla ya anuncia el
+     encabezado de la columna. */
+  .tabla td[data-etiqueta]::before {
+    content: attr(data-etiqueta);
+    content: attr(data-etiqueta) / "";
+    flex: none;
+    width: 4.5rem;
+    font-weight: 600;
+    color: var(--color-texto-suave);
+  }
+
+  .tabla__nombre a::after,
+  .tabla__nombre a:focus-visible::after {
+    border-radius: var(--radio-tarjeta);
+  }
 }

@@ -79,6 +79,34 @@ describe('página del listado de contactos', () => {
     }
   });
 
+  it('el tipo va en su columna, con la etiqueta de su color (C6)', async () => {
+    nuevo({ apellidos: 'Aguilar', tipo: 'cliente' });
+    nuevo({ apellidos: 'Benites', tipo: 'proveedor' });
+    nuevo({ apellidos: 'Cáceres', tipo: 'ambos' });
+
+    const html = (await agente.get('/contactos')).text;
+
+    assert.match(html, /<th scope="col" role="columnheader">Tipo<\/th>/);
+    assert.ok(html.includes('<span class="etiqueta etiqueta--cliente">Cliente</span>'));
+    assert.ok(html.includes('<span class="etiqueta etiqueta--proveedor">Proveedor</span>'));
+    assert.ok(html.includes('<span class="etiqueta etiqueta--ambos">Cliente y proveedor</span>'));
+  });
+
+  it('la tabla repite sus roles ARIA y cada dato lleva su rótulo para la vista de celular', async () => {
+    nuevo({ dni: '01234567', telefonos: ['987 654 321'], correos: ['ana@empresa.pe'] });
+
+    const html = (await agente.get('/contactos')).text;
+
+    assert.match(html, /<table class="tabla" role="table">/);
+    assert.match(html, /<thead role="rowgroup">\s*<tr role="row">/);
+    assert.match(html, /<tbody role="rowgroup">\s*<tr role="row">/);
+    assert.equal(html.match(/role="columnheader"/g).length, 5);
+    assert.equal(html.match(/<td role="cell"/g).length, 5);
+    assert.ok(html.includes('data-etiqueta="DNI">01234567</td>'));
+    assert.ok(html.includes('data-etiqueta="Teléfono">987 654 321</td>'));
+    assert.ok(html.includes('data-etiqueta="Correo">ana@empresa.pe</td>'));
+  });
+
   it('muestra lo buscado y los filtros elegidos en el formulario', async () => {
     const html = (await agente.get('/contactos?q=perez&tipo=proveedor&estado=archivados')).text;
 

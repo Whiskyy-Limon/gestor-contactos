@@ -1,39 +1,43 @@
 <%- include('../partials/cabecera') %>
 <p class="volver"><a href="/contactos">← Contactos</a></p>
-<article class="tarjeta tarjeta--ancha">
-  <header class="ficha">
-    <%- include('../partials/avatar', { contacto }) %>
-    <div>
-      <h1 class="ficha__nombre"><%= contacto.nombres %> <%= contacto.apellidos %></h1>
-      <p class="etiquetas">
-        <span class="etiqueta"><%= nombreDeTipo(contacto.tipo) %></span>
-        <% if (contacto.archivado) { %>
-          <span class="etiqueta etiqueta--archivado">Archivado</span>
-        <% } %>
-      </p>
-    </div>
-  </header>
-
+<article class="tarjeta tarjeta--ancha ficha">
   <%# C5: un contacto archivado es de solo lectura; se puede restaurar (sin confirmación, porque solo
       deshace el archivado). Uno activo se puede editar o archivar (con confirmación). -%>
   <% if (contacto.archivado) { %>
     <div class="archivado">
+      <%- include('../partials/icono', { icono: 'archivo', clase: 'archivado__icono' }) %>
       <p>Este contacto está archivado: no aparece en el listado normal y no se puede editar.</p>
       <form method="post" action="/contactos/<%= contacto.id %>/restaurar">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <button type="submit" class="boton">Restaurar</button>
       </form>
     </div>
-  <% } else { %>
-    <div class="acciones acciones--ficha">
-      <a href="/contactos/<%= contacto.id %>/editar" class="boton">Editar</a>
-      <a href="/contactos/<%= contacto.id %>/archivar" class="boton boton--peligro-contorno">Archivar</a>
-    </div>
+  <% } %>
 
+  <header class="ficha__cabecera">
+    <%- include('../partials/avatar', { contacto, grande: true }) %>
+    <div class="ficha__titulo">
+      <h1 class="ficha__nombre"><%= contacto.nombres %> <%= contacto.apellidos %></h1>
+      <p class="etiquetas">
+        <span class="etiqueta etiqueta--<%= contacto.tipo %>"><%= nombreDeTipo(contacto.tipo) %></span>
+        <% if (contacto.archivado) { %>
+          <span class="etiqueta etiqueta--archivado">Archivado</span>
+        <% } %>
+      </p>
+    </div>
+    <% if (!contacto.archivado) { %>
+      <div class="acciones ficha__acciones">
+        <a href="/contactos/<%= contacto.id %>/editar" class="boton">Editar</a>
+        <a href="/contactos/<%= contacto.id %>/archivar" class="boton boton--peligro-contorno">Archivar</a>
+      </div>
+    <% } %>
+  </header>
+
+  <% if (!contacto.archivado) { %>
     <%# C4: la foto se cambia en un formulario aparte (multipart). Su token CSRF lo verifica la ruta
         después de que multer lee el formulario (ver RUTAS_MULTIPART). -%>
-    <section class="foto" aria-labelledby="titulo-foto">
-      <h2 id="titulo-foto" class="subtitulo">Foto</h2>
+    <section class="ficha__seccion foto" aria-labelledby="titulo-foto">
+      <h2 id="titulo-foto" class="ficha__subtitulo">Foto</h2>
       <% if (locals.errorFoto) { %>
         <p class="alerta" role="alert" id="error-foto"><%= errorFoto %></p>
       <% } %>
@@ -53,42 +57,51 @@
     </section>
   <% } %>
 
-  <dl class="datos">
-    <dt>DNI</dt>
-    <dd><%= contacto.dni %></dd>
-
-    <dt>Teléfonos</dt>
-    <dd>
-      <ul class="lista-simple">
-        <% for (const telefono of contacto.telefonos) { %>
-          <li><%= formatearTelefono(telefono.numero, telefono.tipo) %> <span class="tenue">· <%= telefono.tipo %></span></li>
-        <% } %>
-      </ul>
-    </dd>
-
-    <dt>Correos</dt>
-    <dd>
-      <ul class="lista-simple">
-        <% for (const correo of contacto.correos) { %>
-          <li><a href="mailto:<%= correo %>"><%= correo %></a></li>
-        <% } %>
-      </ul>
-    </dd>
-  </dl>
+  <section class="ficha__seccion" aria-labelledby="titulo-datos">
+    <h2 id="titulo-datos" class="ficha__subtitulo">Datos de contacto</h2>
+    <dl class="datos-contacto">
+      <div>
+        <dt>DNI</dt>
+        <dd class="numero"><%= contacto.dni %></dd>
+      </div>
+      <div>
+        <dt>Teléfonos</dt>
+        <dd>
+          <ul class="lista-simple">
+            <% for (const telefono of contacto.telefonos) { %>
+              <li><span class="numero"><%= formatearTelefono(telefono.numero, telefono.tipo) %></span> <span class="tenue">· <%= telefono.tipo %></span></li>
+            <% } %>
+          </ul>
+        </dd>
+      </div>
+      <div>
+        <dt>Correos</dt>
+        <dd>
+          <ul class="lista-simple">
+            <% for (const correo of contacto.correos) { %>
+              <li><a href="mailto:<%= correo %>"><%= correo %></a></li>
+            <% } %>
+          </ul>
+        </dd>
+      </div>
+    </dl>
+  </section>
 
   <%# A1: quién y cuándo. -%>
-  <h2 class="subtitulo">Registro de cambios</h2>
-  <dl class="datos datos--auditoria">
-    <dt>Creado</dt>
-    <dd><%= contacto.auditoria.creado.por %> · <%= formatearFecha(contacto.auditoria.creado.en) %></dd>
+  <footer class="ficha__pie">
+    <h2 class="ficha__subtitulo">Registro de cambios</h2>
+    <dl class="auditoria">
+      <dt>Creado</dt>
+      <dd><%= contacto.auditoria.creado.por %> · <%= formatearFecha(contacto.auditoria.creado.en) %></dd>
 
-    <dt>Última modificación</dt>
-    <dd><%= contacto.auditoria.actualizado.por %> · <%= formatearFecha(contacto.auditoria.actualizado.en) %></dd>
+      <dt>Última modificación</dt>
+      <dd><%= contacto.auditoria.actualizado.por %> · <%= formatearFecha(contacto.auditoria.actualizado.en) %></dd>
 
-    <% if (contacto.auditoria.archivado) { %>
-      <dt>Archivado</dt>
-      <dd><%= contacto.auditoria.archivado.por %> · <%= formatearFecha(contacto.auditoria.archivado.en) %></dd>
-    <% } %>
-  </dl>
+      <% if (contacto.auditoria.archivado) { %>
+        <dt>Archivado</dt>
+        <dd><%= contacto.auditoria.archivado.por %> · <%= formatearFecha(contacto.auditoria.archivado.en) %></dd>
+      <% } %>
+    </dl>
+  </footer>
 </article>
 <%- include('../partials/pie') %>

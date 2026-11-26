@@ -1,9 +1,10 @@
 <%#
   C4: la foto del contacto o, si no tiene, un avatar con sus iniciales. Recibe `contacto`:
-  { id, nombres, apellidos, foto } y, opcionalmente, `chico: true` (para el listado).
+  { id, nombres, apellidos, foto } y, opcionalmente, el tamaño: `chico: true` (listado) o
+  `grande: true` (ficha del contacto).
   Es decorativo (alt vacío, aria-hidden): el nombre completo siempre está escrito al lado.
 -%>
-<% const claseTamano = locals.chico ? ' avatar--chico' : ''; %>
+<% const claseTamano = locals.chico ? ' avatar--chico' : locals.grande ? ' avatar--grande' : ''; %>
 <% if (contacto.foto) { %>
 <img class="avatar avatar--foto<%= claseTamano %>" src="/fotos/<%= contacto.foto %>" alt="">
 <% } else { %>

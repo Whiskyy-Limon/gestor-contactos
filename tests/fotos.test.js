@@ -165,7 +165,7 @@ describe('fotos de los contactos (C4, F1–F4)', () => {
 
       const html = await detalle();
       assert.ok(html.includes('Foto actualizada.'));
-      assert.ok(html.includes(`<img class="avatar avatar--foto" src="/fotos/${foto}" alt="">`));
+      assert.ok(html.includes(`<img class="avatar avatar--foto avatar--grande" src="/fotos/${foto}" alt="">`));
       assert.ok(html.includes('>Cambiar foto</button>'));
       assert.ok((await agente.get('/contactos')).text.includes(`<img class="avatar avatar--foto avatar--chico" src="/fotos/${foto}" alt="">`));
     });
@@ -201,7 +201,7 @@ describe('fotos de los contactos (C4, F1–F4)', () => {
       assert.deepEqual(archivos(), []);
       const html = await detalle();
       assert.ok(html.includes('Foto quitada.'));
-      assert.match(html, /<span class="avatar avatar--\d" aria-hidden="true">JÁ<\/span>/);
+      assert.match(html, /<span class="avatar avatar--\d avatar--grande" aria-hidden="true">JÁ<\/span>/);
     });
 
     it('un PNG llamado .jpg y enviado como image/jpeg se acepta: cuenta el contenido (F2)', async () => {
