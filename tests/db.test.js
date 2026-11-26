@@ -7,14 +7,19 @@ import os from 'node:os';
 import path from 'node:path';
 import { abrirBaseDeDatos } from '../src/db/conexion.js';
 import { aplicarMigraciones, migracionesPendientes } from '../src/db/migraciones.js';
+import { normalizarParaBusqueda } from '../src/services/busqueda.js';
 import {
   CODIGOS_AREA_PROVINCIA,
+  LETRAS_NO_ASCII_NOMBRE,
   MAXIMO_CORREOS_POR_CONTACTO,
   MAXIMO_TELEFONOS_POR_CONTACTO,
+  TIPOS_CONTACTO,
 } from '../src/validators/reglas.js';
 
 // Texto con forma de hash bcrypt. Estas pruebas no verifican contraseñas.
 const HASH_DE_PRUEBA = '$2b$10$' + 'a'.repeat(53);
+const CARPETA_MIGRACIONES = path.join(import.meta.dirname, '..', 'src', 'db', 'migrations');
+const AHORA = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')";
 
 describe('esquema de la base de datos', () => {
   let db;
@@ -37,11 +42,31 @@ describe('esquema de la base de datos', () => {
     return Number(resultado.lastInsertRowid);
   }
 
-  function insertarContacto({ dni = '12345678', nombres = 'Ana María', apellidos = 'Pérez Núñez' } = {}) {
+  function insertarContacto({
+    dni = '12345678',
+    nombres = 'Ana María',
+    apellidos = 'Pérez Núñez',
+    tipo = 'cliente',
+    actualizadoPor = usuarioId,
+  } = {}) {
     const resultado = db
-      .prepare('INSERT INTO contactos (nombres, apellidos, dni, creado_por) VALUES (?, ?, ?, ?)')
-      .run(nombres, apellidos, dni, usuarioId);
+      .prepare(
+        `INSERT INTO contactos (nombres, apellidos, dni, tipo, creado_por, actualizado_por)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(nombres, apellidos, dni, tipo, usuarioId, actualizadoPor);
     return Number(resultado.lastInsertRowid);
+  }
+
+  function archivar(contactoId, archivadoPor = usuarioId) {
+    db.prepare(`UPDATE contactos SET archivado_en = ${AHORA}, archivado_por = ? WHERE id = ?`).run(
+      archivadoPor,
+      contactoId,
+    );
+  }
+
+  function leerContacto(contactoId) {
+    return db.prepare('SELECT * FROM contactos WHERE id = ?').get(contactoId);
   }
 
   function insertarTelefono(contactoId, numero, tipo = 'celular') {
@@ -70,10 +95,7 @@ describe('esquema de la base de datos', () => {
     });
 
     it('rechaza un DNI duplicado aunque el contacto esté archivado', () => {
-      const archivado = insertarContacto({ dni: '12345678' });
-      db.prepare("UPDATE contactos SET archivado_en = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?").run(
-        archivado,
-      );
+      archivar(insertarContacto({ dni: '12345678' }));
 
       assert.throws(() => insertarContacto({ dni: '12345678', nombres: 'Luis' }), {
         code: 'SQLITE_CONSTRAINT_UNIQUE',
@@ -202,6 +224,169 @@ describe('esquema de la base de datos', () => {
     });
   });
 
+  describe('tipo de contacto (C6)', () => {
+    it('acepta exactamente los tipos de TIPOS_CONTACTO', () => {
+      const candidatos = [...TIPOS_CONTACTO, 'Cliente', 'clientes', 'proveedores', 'otro', ' ambos', ''];
+      const aceptados = [];
+
+      candidatos.forEach((tipo, i) => {
+        try {
+          insertarContacto({ dni: String(10000000 + i), tipo });
+          aceptados.push(tipo);
+        } catch (error) {
+          assert.equal(error.code, 'SQLITE_CONSTRAINT_CHECK');
+        }
+      });
+
+      assert.deepEqual(aceptados, [...TIPOS_CONTACTO]);
+    });
+
+    it('rechaza un contacto sin tipo', () => {
+      const sinTipo = () =>
+        db
+          .prepare('INSERT INTO contactos (nombres, apellidos, dni, creado_por, actualizado_por) VALUES (?, ?, ?, ?, ?)')
+          .run('Ana', 'Pérez', '12345678', usuarioId, usuarioId);
+
+      assert.throws(sinTipo, { code: 'SQLITE_CONSTRAINT_CHECK', message: /tipo/ });
+    });
+  });
+
+  describe('auditoría (A1)', () => {
+    it('rechaza un contacto sin quién lo modificó por última vez', () => {
+      assert.throws(() => insertarContacto({ actualizadoPor: null }), {
+        code: 'SQLITE_CONSTRAINT_CHECK',
+        message: /actualizado_por/,
+      });
+    });
+
+    it('rechaza como autor a alguien que no es un usuario', () => {
+      const contactoId = insertarContacto();
+
+      assert.throws(() => insertarContacto({ dni: '22222222', actualizadoPor: 999 }), {
+        code: 'SQLITE_CONSTRAINT_FOREIGNKEY',
+      });
+      assert.throws(() => archivar(contactoId, 999), { code: 'SQLITE_CONSTRAINT_FOREIGNKEY' });
+    });
+
+    it('un contacto se archiva con fecha y autor, o no tiene ninguno de los dos', () => {
+      const contactoId = insertarContacto();
+      const soloFecha = () => db.prepare(`UPDATE contactos SET archivado_en = ${AHORA} WHERE id = ?`).run(contactoId);
+      const soloAutor = () =>
+        db.prepare('UPDATE contactos SET archivado_por = ? WHERE id = ?').run(usuarioId, contactoId);
+
+      assert.throws(soloFecha, { code: 'SQLITE_CONSTRAINT_CHECK', message: /archivado_por/ });
+      assert.throws(soloAutor, { code: 'SQLITE_CONSTRAINT_CHECK', message: /archivado_por/ });
+
+      archivar(contactoId);
+      assert.equal(leerContacto(contactoId).archivado_por, usuarioId);
+
+      db.prepare('UPDATE contactos SET archivado_en = NULL, archivado_por = NULL WHERE id = ?').run(contactoId);
+      assert.equal(leerContacto(contactoId).archivado_en, null);
+    });
+
+    it('no permite borrar a un usuario que modificó o archivó un contacto', () => {
+      const editora = insertarUsuario('editora@empresa.pe');
+      const archivadora = insertarUsuario('archivadora@empresa.pe');
+      const sinContactos = insertarUsuario('nueva@empresa.pe');
+      archivar(insertarContacto({ actualizadoPor: editora }), archivadora);
+      const borrarUsuario = (id) => db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
+      // SQLite informa ON DELETE RESTRICT con el código SQLITE_CONSTRAINT_TRIGGER; se verifica el mensaje.
+      const restriccion = { message: /FOREIGN KEY constraint failed/ };
+
+      assert.throws(() => borrarUsuario(editora), restriccion);
+      assert.throws(() => borrarUsuario(archivadora), restriccion);
+      assert.equal(borrarUsuario(sinContactos).changes, 1);
+    });
+  });
+
+  describe('versión (C7)', () => {
+    it('empieza en 1 y no acepta valores menores', () => {
+      const contactoId = insertarContacto();
+
+      assert.equal(leerContacto(contactoId).version, 1);
+      assert.throws(() => db.prepare('UPDATE contactos SET version = 0 WHERE id = ?').run(contactoId), {
+        code: 'SQLITE_CONSTRAINT_CHECK',
+        message: /version/,
+      });
+    });
+  });
+
+  describe('búsqueda sin tildes (B2)', () => {
+    function columnasDeBusqueda(contactoId) {
+      return db
+        .prepare('SELECT nombres_busqueda, apellidos_busqueda FROM contactos WHERE id = ?')
+        .get(contactoId);
+    }
+
+    it('guarda nombres y apellidos sin tildes ni mayúsculas, con la ñ como n', () => {
+      const contactoId = insertarContacto({ nombres: 'José Ñandú', apellidos: "Álvarez-Müller O'Brien" });
+
+      assert.deepEqual(columnasDeBusqueda(contactoId), {
+        nombres_busqueda: 'jose nandu',
+        apellidos_busqueda: "alvarez-muller o'brien",
+      });
+    });
+
+    it('se recalculan solas al cambiar el nombre y no se pueden escribir a mano', () => {
+      const contactoId = insertarContacto();
+
+      db.prepare('UPDATE contactos SET nombres = ? WHERE id = ?').run('Íñigo', contactoId);
+
+      assert.equal(columnasDeBusqueda(contactoId).nombres_busqueda, 'inigo');
+      assert.throws(
+        () => db.prepare("UPDATE contactos SET nombres_busqueda = 'otro' WHERE id = ?").run(contactoId),
+        /generated column/,
+      );
+    });
+
+    it('dan el mismo resultado que normalizarParaBusqueda() con cada carácter que admite C1', () => {
+      const mayusculas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const permitidos = [...mayusculas, ...mayusculas.toLowerCase(), ...LETRAS_NO_ASCII_NOMBRE, ' ', "'", '-'];
+      const contactoId = insertarContacto();
+      const cambiarNombre = db.prepare('UPDATE contactos SET nombres = ?, apellidos = ? WHERE id = ?');
+
+      for (const caracter of permitidos) {
+        const texto = `a${caracter}a`;
+        cambiarNombre.run(texto, texto, contactoId);
+
+        const { nombres_busqueda, apellidos_busqueda } = columnasDeBusqueda(contactoId);
+        const esperado = normalizarParaBusqueda(texto);
+        assert.equal(nombres_busqueda, esperado, `nombres con ${JSON.stringify(caracter)}`);
+        assert.equal(apellidos_busqueda, esperado, `apellidos con ${JSON.stringify(caracter)}`);
+        assert.match(esperado, /^[a-z' -]+$/, `${JSON.stringify(caracter)} debe quedar en ASCII`);
+      }
+    });
+
+    it('el orden por apellidos ignora las tildes: "Álvarez" queda en la A y "Ñique" junto a la N', () => {
+      const apellidos = ['Zúñiga', 'Benítez', 'Álvarez', 'alvarado', 'Ñique', 'Ochoa'];
+      apellidos.forEach((apellido, i) => insertarContacto({ dni: String(10000000 + i), apellidos: apellido }));
+
+      const orden = db
+        .prepare(
+          `SELECT apellidos FROM contactos WHERE archivado_en IS NULL
+           ORDER BY apellidos_busqueda, nombres_busqueda`,
+        )
+        .pluck()
+        .all();
+
+      assert.deepEqual(orden, ['alvarado', 'Álvarez', 'Benítez', 'Ñique', 'Ochoa', 'Zúñiga']);
+    });
+
+    it('el listado de activos se lee en orden desde el índice, sin ordenar en memoria', () => {
+      const plan = db
+        .prepare(
+          `EXPLAIN QUERY PLAN SELECT id FROM contactos WHERE archivado_en IS NULL
+           ORDER BY apellidos_busqueda, nombres_busqueda`,
+        )
+        .all()
+        .map((paso) => paso.detail)
+        .join('\n');
+
+      assert.match(plan, /contactos_activos_por_nombre/);
+      assert.doesNotMatch(plan, /TEMP B-TREE/);
+    });
+  });
+
   describe('usuarios (U3)', () => {
     it('rechaza un correo de usuario repetido aunque cambien las mayúsculas', () => {
       assert.throws(() => insertarUsuario('PRUEBA@Empresa.pe'), { code: 'SQLITE_CONSTRAINT_UNIQUE' });
@@ -293,6 +478,42 @@ describe('migraciones', () => {
 
       assert.deepEqual(tablas, ['a']);
       assert.deepEqual(registradas, ['001_crea_a.sql']);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('003 no se aplica si ya hay contactos, porque no puede inventarles un tipo ni un autor', (t) => {
+    const MIGRACION_003 = '003_tipo_auditoria_y_busqueda.sql';
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'migraciones-prueba-'));
+    t.after(() => fs.rmSync(carpeta, { recursive: true, force: true }));
+    const copiar = (nombre) => fs.copyFileSync(path.join(CARPETA_MIGRACIONES, nombre), path.join(carpeta, nombre));
+    copiar('001_esquema_inicial.sql');
+    copiar('002_sesiones.sql');
+
+    const db = abrirBaseDeDatos(':memory:');
+    try {
+      aplicarMigraciones(db, carpeta);
+      const usuarioId = db
+        .prepare('INSERT INTO usuarios (nombre, correo, password_hash) VALUES (?, ?, ?)')
+        .run('Usuaria de Prueba', 'prueba@empresa.pe', HASH_DE_PRUEBA).lastInsertRowid;
+      db.prepare('INSERT INTO contactos (nombres, apellidos, dni, creado_por) VALUES (?, ?, ?, ?)').run(
+        'Ana',
+        'Pérez',
+        '12345678',
+        usuarioId,
+      );
+      copiar(MIGRACION_003);
+
+      assert.throws(() => aplicarMigraciones(db, carpeta), /Falló la migración 003_tipo_auditoria_y_busqueda\.sql/);
+
+      const columnas = db.prepare("SELECT name FROM pragma_table_xinfo('contactos')").pluck().all();
+      assert.deepEqual(
+        columnas.filter((columna) => ['tipo', 'actualizado_por', 'apellidos_busqueda'].includes(columna)),
+        [],
+      );
+      assert.equal(db.prepare('SELECT count(*) FROM contactos').pluck().get(), 1);
+      assert.deepEqual(migracionesPendientes(db, carpeta), [MIGRACION_003]);
     } finally {
       db.close();
     }

@@ -1,8 +1,17 @@
 // Constantes de las reglas de negocio (docs/REGLAS-NEGOCIO.md) que usan los validadores.
 //
-// Algunos de estos valores (códigos de área y máximos por contacto) también están en los CHECK
-// y triggers de las migraciones. Si cambias uno de ellos, crea una migración nueva que actualice
-// la base de datos; tests/db.test.js verifica que ambos coincidan.
+// Algunos de estos valores (códigos de área, máximos por contacto, tipos de contacto y letras con
+// tilde) también están en los CHECK, triggers y columnas generadas de las migraciones. Si cambias
+// uno de ellos, crea una migración nueva que actualice la base de datos; tests/db.test.js verifica
+// que ambos coincidan.
+
+// C1: letras de nombres y apellidos que no son ASCII (además de a–z y A–Z).
+// Las columnas nombres_busqueda y apellidos_busqueda (migración 003) les quitan la tilde
+// exactamente a estas letras (B2).
+export const LETRAS_NO_ASCII_NOMBRE = 'áéíóúüñÁÉÍÓÚÜÑ';
+
+// C6: tipos de contacto.
+export const TIPOS_CONTACTO = Object.freeze(['cliente', 'proveedor', 'ambos']);
 
 // T4: códigos de área de la telefonía fija de provincia (Perú), uno por departamento.
 export const CODIGOS_AREA_PROVINCIA = Object.freeze([

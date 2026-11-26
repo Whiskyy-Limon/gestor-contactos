@@ -11,9 +11,9 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 ## Contacto
 
 ### C1. Nombres y apellidos
-**Regla:** Nombres y apellidos son obligatorios. Cada campo tiene entre 2 y 60 caracteres y solo admite letras (incluidas las vocales con tilde, la ñ y la ü), espacios, apóstrofo (`'`) y guion (`-`). Antes de guardar se quitan los espacios del inicio y del final, y los espacios dobles se reducen a uno.
+**Regla:** Nombres y apellidos son obligatorios. Cada campo tiene entre 2 y 60 caracteres y solo admite las letras del español (de la a a la z, las vocales con tilde á, é, í, ó, ú, la ü y la ñ, en mayúsculas o minúsculas), espacios, apóstrofo (`'`) y guion (`-`). Antes de guardar se quitan los espacios del inicio y del final, los espacios dobles se reducen a uno y el apóstrofo tipográfico (`’`) se convierte en `'`.
 
-**Porqué:** Los nombres reales llevan tildes, ñ y ü, y hay apellidos compuestos ("De la Cruz", "Rivas-Plata") o con apóstrofo ("O'Brien"); la regla los acepta y rechaza números y símbolos, que casi siempre son errores de tipeo. Normalizar los espacios evita que "Ana  María" y "Ana María" se vean como datos distintos.
+**Porqué:** Los nombres reales llevan tildes, ñ y ü, y hay apellidos compuestos ("De la Cruz", "Rivas-Plata") o con apóstrofo ("O'Brien"); la regla los acepta y rechaza números y símbolos, que casi siempre son errores de tipeo. Normalizar los espacios evita que "Ana  María" y "Ana María" se vean como datos distintos. Muchos teclados de celular escriben el apóstrofo tipográfico; convertirlo evita que "O’Brien" y "O'Brien" sean datos distintos. Las letras de otros idiomas (ç, ö, è…) por ahora no se aceptan, porque la búsqueda sin tildes (B2) está preparada para las letras del español (ver Mejoras futuras).
 
 ### C2. DNI
 **Regla:** El DNI es obligatorio y tiene exactamente 8 dígitos. Es único en todo el sistema, incluidos los contactos archivados. Si se intenta registrar un DNI que pertenece a un contacto archivado, el mensaje debe indicarlo y ofrecer restaurar ese contacto.
@@ -26,14 +26,24 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 **Porqué:** Un contacto sin forma de comunicarse no le sirve a la empresa. El máximo mantiene la ficha legible y evita cargas abusivas. Repetir un dato dentro de la misma ficha no aporta nada y ensucia la información. La restricción es por contacto: dos contactos distintos sí pueden compartir un teléfono o un correo (por ejemplo, la central de una empresa).
 
 ### C4. Foto
-**Regla:** La foto es opcional. Si un contacto no tiene foto, se muestra un avatar con sus iniciales.
+**Regla:** La foto es opcional. Si un contacto no tiene foto, se muestra un avatar con sus iniciales. La foto se agrega, se cambia o se quita desde el detalle del contacto, en un formulario aparte del de sus datos.
 
-**Porqué:** No siempre se tiene una foto del contacto. Las iniciales permiten reconocerlo de un vistazo en los listados sin exigir una imagen.
+**Porqué:** No siempre se tiene una foto del contacto. Las iniciales permiten reconocerlo de un vistazo en los listados sin exigir una imagen. Si el formulario de datos vuelve con un error, el navegador no conserva el archivo elegido; con la foto en un formulario aparte no hay que elegirla de nuevo.
 
 ### C5. Eliminar es archivar
-**Regla:** Eliminar un contacto significa archivarlo: no se borra de la base de datos, deja de aparecer en el listado normal y se puede restaurar.
+**Regla:** Eliminar un contacto significa archivarlo: no se borra de la base de datos, deja de aparecer en el listado normal y se puede restaurar. Archivar pide confirmación; restaurar no, porque solo deshace el archivado. Un contacto archivado no se puede editar: primero hay que restaurarlo.
 
-**Porqué:** Hoy el cliente pierde datos. Archivar permite deshacer un error y conserva toda la información, junto con la fecha en que se archivó.
+**Porqué:** Hoy el cliente pierde datos. Archivar permite deshacer un error y conserva toda la información, junto con la fecha en que se archivó. La confirmación evita archivar por un clic accidental. Impedir que se edite un archivado evita cambios sobre datos que ya no aparecen en el listado normal y que nadie está revisando.
+
+### C6. Tipo de contacto
+**Regla:** Cada contacto es `cliente`, `proveedor` o `ambos`, y el tipo es obligatorio. En el listado se puede filtrar por tipo: el filtro "Clientes" incluye a los de tipo "ambos", y el filtro "Proveedores" también.
+
+**Porqué:** El caso habla de clientes y proveedores, y la empresa necesita distinguirlos. Algunos contactos son las dos cosas (la empresa les compra y les vende): con "ambos" se registran una sola vez, sin duplicarlos, y aparecen tanto al buscar clientes como al buscar proveedores.
+
+### C7. Ediciones simultáneas
+**Regla:** Si dos personas editan el mismo contacto a la vez, la que guarda en segundo lugar no sobrescribe sin saberlo los cambios de la otra: el sistema le vuelve a mostrar el formulario con lo que escribió, le avisa que otra persona guardó cambios y le ofrece ver la versión guardada. Si vuelve a guardar, reemplaza esa versión a sabiendas.
+
+**Porqué:** Sin este control, quien guarda al último borra sin aviso el trabajo de la otra persona: es la pérdida de datos que hoy ocurre con las hojas de cálculo compartidas. Volver a mostrar lo que escribió evita que pierda su propio trabajo.
 
 ---
 
@@ -109,6 +119,11 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 
 **Porqué:** Redimensionar ahorra espacio y acelera los listados. Convertir a un único formato simplifica mostrarlas. Los metadatos pueden revelar dónde y cuándo se tomó la foto; quitarlos protege la privacidad. Reprocesar además descarta cualquier contenido extra escondido en el archivo original. El nombre aleatorio impide adivinar las direcciones de otras fotos y evita usar el nombre original, que puede traer datos personales o caracteres peligrosos. Las fotos son datos personales, por eso se protegen igual que el resto de la información.
 
+### F4. Límite de píxeles
+**Regla:** Una foto puede tener como máximo 25 megapíxeles (por ejemplo, 5000 × 5000 píxeles). Una imagen más grande se rechaza aunque pese menos de 2 MB.
+
+**Porqué:** Un archivo pequeño puede contener una imagen enorme. Una imagen "bomba", como un PNG de un solo color que pesa menos de 2 MB pero se descomprime en cientos de millones de píxeles, agotaría la memoria del servidor al procesarla. Una foto real de menos de 2 MB rara vez supera los 12 a 20 megapíxeles, así que el límite deja margen.
+
 ---
 
 ## Usuarios
@@ -138,11 +153,46 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 
 **Porqué:** Frena a quien intenta adivinar contraseñas probando muchas. Contar por IP y correo evita que, en una oficina donde todos salen a internet con la misma IP, los errores de una persona bloqueen a las demás; el tope por IP frena a quien prueba muchos correos distintos. La ventana es de 8 minutos, y no más larga, porque la contraseña mínima de 10 caracteres (U2) ya hace inviable la fuerza bruta incluso con unos 37 intentos por hora para un mismo correo; así, un empleado que se equivoca no queda bloqueado tanto tiempo. Los contadores se guardan en memoria y se reinician si se reinicia el servidor, lo que alcanza mientras haya un único servidor.
 
+### U6. Sin roles
+**Regla:** Todos los usuarios tienen los mismos permisos: pueden ver, crear, editar, archivar y restaurar cualquier contacto.
+
+**Porqué:** Es una empresa pequeña en la que todo el personal trabaja con los mismos contactos; separar permisos hoy agregaría pasos y complejidad sin resolver un problema actual. La auditoría (A1) permite saber quién hizo cada cambio. Los roles quedan como mejora futura.
+
+---
+
+## Auditoría
+
+### A1. Quién y cuándo
+**Regla:** Cada contacto guarda quién lo creó, quién lo modificó por última vez y quién lo archivó, con la fecha y la hora de cada cosa, y el detalle del contacto lo muestra. Al crear un contacto, su última modificación es la creación. Cambiar o quitar la foto y restaurar el contacto cuentan como modificaciones; al restaurarlo se borra quién lo había archivado. Se guarda solo lo último, no el historial de cambios. Las fechas se guardan en UTC y se muestran en la hora de Perú. Un usuario que figura en la auditoría de algún contacto no se puede borrar de la base de datos.
+
+**Porqué:** El cliente pierde datos y necesita saber quién cambió qué. Saber quién hizo el último cambio permite preguntarle a esa persona. Impedir que se borren esos usuarios evita que la auditoría quede apuntando a nadie. El historial completo queda como mejora futura.
+
 ---
 
 ## Búsqueda
 
 ### B1. Búsqueda de contactos
-**Regla:** Se puede buscar por nombres, apellidos, DNI, teléfono o correo. Por defecto solo se muestran los contactos activos; un filtro permite ver los archivados.
+**Regla:** Se puede buscar por nombres, apellidos, DNI, teléfono o correo. El teléfono se puede escribir con cualquiera de los formatos de T1 a T4 (con espacios, guiones, paréntesis, `+51` o el 0 de provincia). Por defecto solo se muestran los contactos activos; un filtro permite ver los archivados y otro filtra por tipo (C6).
 
-**Porqué:** Son los datos con los que el personal suele buscar a un contacto. Los archivados no estorban en el trabajo diario, pero siguen siendo fáciles de encontrar para restaurarlos.
+**Porqué:** Son los datos con los que el personal suele buscar a un contacto. Buscar el teléfono tal como cada persona lo escribe evita tener que saber cómo está guardado. Los archivados no estorban en el trabajo diario, pero siguen siendo fáciles de encontrar para restaurarlos.
+
+### B2. Sin tildes ni mayúsculas
+**Regla:** La búsqueda por nombres y apellidos no distingue tildes, diéresis ni mayúsculas, y la ñ cuenta como n: "jose" encuentra a "José" y "munoz" a "Muñoz". Si se escriben varias palabras, cada una debe aparecer en los nombres o en los apellidos, en cualquier orden: "perez jose" encuentra a "José Pérez". El listado se ordena por apellidos y luego por nombres con el mismo criterio, así "Álvarez" queda en la A.
+
+**Porqué:** Cada persona escribe los nombres a su manera, con o sin tildes, y no todos los teclados tienen ñ: la búsqueda no puede depender de eso. Sin esta regla, "Álvarez" quedaría al final de la lista, después de la Z. Tratar la ñ como n se aparta un poco del orden alfabético del español ("Muñoz" queda junto a "Munoz" y no después de todos los "Mun…"), a cambio de una búsqueda más tolerante. Las versiones sin tildes las calcula la propia base de datos, así nunca quedan desfasadas del nombre.
+
+### B3. Paginación
+**Regla:** El listado muestra 20 contactos por página, en el orden de B2. Al cambiar de página se conservan la búsqueda y los filtros.
+
+**Porqué:** Una página corta carga rápido y se recorre de un vistazo; para encontrar a alguien en particular está la búsqueda. Conservar la búsqueda y los filtros evita escribirlos de nuevo en cada página.
+
+---
+
+## Mejoras futuras
+
+Ideas que quedan fuera del alcance actual. Cada una cambia alguna de las reglas de arriba, así que se consulta antes de implementarla.
+
+- **Roles y permisos** (U6): por ejemplo, que solo algunos usuarios puedan archivar o restaurar contactos.
+- **Historial completo de auditoría** (A1): registrar cada cambio, con quién lo hizo, cuándo, el valor anterior y el nuevo, en lugar de guardar solo el último.
+- **Letras de otros idiomas en los nombres** (C1, B2): aceptar ç, ö, è y otras. Requiere ampliar la validación y, con una migración nueva, las columnas de búsqueda sin tildes.
+- **Importar contactos desde Excel o CSV:** para pasar al sistema las hojas de cálculo actuales. Cada fila tendría que cumplir las mismas reglas (en especial C2, para no importar duplicados), y el sistema tendría que informar qué filas no se importaron y por qué.
