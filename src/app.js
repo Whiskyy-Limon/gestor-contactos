@@ -1,14 +1,16 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
 import { config } from './config/index.js';
 import { requiereSesion } from './middlewares/auth.js';
 import { avisos } from './middlewares/avisos.js';
-import { proteccionCsrf } from './middlewares/csrf.js';
+import { crearProteccionCsrf } from './middlewares/csrf.js';
 import { manejarErrores, noEncontrado } from './middlewares/errores.js';
 import { cabecerasDeSeguridad, sinCache } from './middlewares/seguridad.js';
 import { crearSesion } from './middlewares/sesion.js';
 import { crearRutaLogout, crearRutasLogin } from './routes/auth.js';
-import { crearRutasContactos } from './routes/contactos.js';
+import { RUTAS_MULTIPART, crearRutasContactos } from './routes/contactos.js';
+import { crearRutaFotos } from './routes/fotos.js';
 import inicioRouter from './routes/inicio.js';
 import * as ayudantes from './views/ayudantes.js';
 
@@ -20,17 +22,21 @@ const CARPETA_VISTAS = path.join(import.meta.dirname, 'views');
 //   sessionSecret   secreto de la cookie de sesión (obligatorio, mínimo 32 caracteres)
 //   produccion      activa la cookie `secure` y el prefijo __Host-
 //   trustProxy      valor de 'trust proxy' de Express (ver TRUST_PROXY en .env.example)
+//   carpetaFotos    carpeta de las fotos de los contactos (ver UPLOADS_PATH; se crea si no existe)
 //   registrarError  dónde se registran los errores inesperados (las pruebas lo reemplazan)
 export function crearApp({
   db,
   sessionSecret = config.sessionSecret,
   produccion = config.isProduction,
   trustProxy = config.trustProxy,
+  carpetaFotos = config.carpetaFotos,
   registrarError = (error) => console.error(error),
 } = {}) {
   if (!db) {
     throw new Error('crearApp necesita la conexión a la base de datos (db).');
   }
+  const carpetaDeFotos = path.resolve(carpetaFotos);
+  fs.mkdirSync(carpetaDeFotos, { recursive: true });
 
   const app = express();
 
@@ -61,7 +67,8 @@ export function crearApp({
   app.use(avisos);
 
   // 6. CSRF: todo POST/PUT/PATCH/DELETE debe traer el token de la sesión, también el login.
-  app.use(proteccionCsrf);
+  //    Las rutas multipart (la foto) lo verifican ellas mismas, después de leer el cuerpo.
+  app.use(crearProteccionCsrf({ excepto: RUTAS_MULTIPART }));
 
   // 7. Rutas públicas.
   app.use(crearRutasLogin(db));
@@ -72,7 +79,8 @@ export function crearApp({
 
   // 9. Rutas protegidas.
   app.use(inicioRouter);
-  app.use(crearRutasContactos(db));
+  app.use(crearRutasContactos(db, { carpetaFotos: carpetaDeFotos, registrarError }));
+  app.use(crearRutaFotos(db, carpetaDeFotos));
   app.use(crearRutaLogout(sesion));
 
   // 10. Página no encontrada (solo la ve quien tiene sesión: al resto el paso 8 lo manda al login,

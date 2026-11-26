@@ -29,6 +29,28 @@
       <a href="/contactos/<%= contacto.id %>/editar" class="boton">Editar</a>
       <a href="/contactos/<%= contacto.id %>/archivar" class="boton boton--secundario">Archivar</a>
     </div>
+
+    <%# C4: la foto se cambia en un formulario aparte (multipart). Su token CSRF lo verifica la ruta
+        después de que multer lee el formulario (ver RUTAS_MULTIPART). -%>
+    <section class="foto" aria-labelledby="titulo-foto">
+      <h2 id="titulo-foto" class="subtitulo">Foto</h2>
+      <% if (locals.errorFoto) { %>
+        <p class="alerta" role="alert" id="error-foto"><%= errorFoto %></p>
+      <% } %>
+      <form method="post" action="/contactos/<%= contacto.id %>/foto" enctype="multipart/form-data" class="foto__formulario">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <label for="foto">Imagen JPG, PNG o WebP de hasta 2 MB</label>
+        <input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" required
+          <% if (locals.errorFoto) { %>aria-invalid="true" aria-describedby="error-foto"<% } %>>
+        <button type="submit" class="boton"><%= contacto.foto ? 'Cambiar foto' : 'Subir foto' %></button>
+      </form>
+      <% if (contacto.foto) { %>
+        <form method="post" action="/contactos/<%= contacto.id %>/foto/quitar" class="foto__quitar">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <button type="submit" class="boton boton--secundario">Quitar foto</button>
+        </form>
+      <% } %>
+    </section>
   <% } %>
 
   <dl class="datos">

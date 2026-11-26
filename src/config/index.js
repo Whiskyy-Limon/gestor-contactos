@@ -19,5 +19,6 @@ export const config = {
   port: Number(process.env.PORT ?? 3000),
   sessionSecret: process.env.SESSION_SECRET,
   databasePath: process.env.DATABASE_PATH ?? 'storage/contactos.db',
+  carpetaFotos: process.env.UPLOADS_PATH ?? 'storage/uploads',
   trustProxy: leerTrustProxy(process.env.TRUST_PROXY),
 };

@@ -147,6 +147,28 @@ export function editarContacto(db, id, entrada, usuarioId) {
   }
 }
 
+// C4: pone en el contacto la foto `foto` (nombre del archivo, o null para quitarla) y devuelve el
+// nombre de la foto anterior (o null). Cambiar o quitar la foto cuenta como modificación (A1) y
+// sube la versión (C7). Quitar la foto de un contacto que no tiene no cambia nada.
+// Un contacto archivado no se modifica (C5): lanza ConflictoDeEdicion; si no existe, un error 404.
+export function reemplazarFoto(db, id, foto, usuarioId) {
+  const reemplazar = db.transaction(() => {
+    const fila = db.prepare('SELECT foto FROM contactos WHERE id = ? AND archivado_en IS NULL').get(id);
+    if (!fila) {
+      throw motivoDelRechazo(db, id);
+    }
+    if (fila.foto === null && foto === null) {
+      return null;
+    }
+    db.prepare(
+      `UPDATE contactos SET foto = ?, actualizado_por = ?, actualizado_en = ${AHORA}, version = version + 1
+       WHERE id = ?`,
+    ).run(foto, usuarioId, id);
+    return fila.foto;
+  });
+  return reemplazar();
+}
+
 // C5, A1: archiva un contacto, con fecha y autor. Devuelve false si ya estaba archivado.
 // Archivar no cuenta como su última modificación (tiene sus propias columnas), pero sí aumenta la
 // versión (C7): una edición abierta antes ya no se puede guardar.

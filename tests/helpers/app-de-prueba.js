@@ -1,5 +1,8 @@
 // Utilidades para las pruebas de la app: base de datos en memoria, un usuario y su propio secreto.
-// Nunca usan la base de datos real ni el SESSION_SECRET de .env.
+// Nunca usan la base de datos real, la carpeta real de fotos ni el SESSION_SECRET de .env.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { crearApp } from '../../src/app.js';
 import { abrirBaseDeDatos } from '../../src/db/conexion.js';
 import { aplicarMigraciones } from '../../src/db/migraciones.js';
@@ -11,24 +14,36 @@ export const NOMBRE = 'Ana Pérez';
 export const CORREO = 'ana@empresa.pe';
 export const PASSWORD = 'clave-segura-123';
 
-// Base de datos migrada con un usuario y una app lista.
+// Carpetas temporales de fotos de este archivo de pruebas; se borran al terminar el proceso.
+let carpetaTemporal = null;
+function nuevaCarpetaDeFotos() {
+  if (carpetaTemporal === null) {
+    carpetaTemporal = fs.mkdtempSync(path.join(os.tmpdir(), 'gestor-fotos-'));
+    process.on('exit', () => fs.rmSync(carpetaTemporal, { recursive: true, force: true }));
+  }
+  return fs.mkdtempSync(path.join(carpetaTemporal, 'entorno-'));
+}
+
+// Base de datos migrada con un usuario y una app lista, con su propia carpeta de fotos.
 // `nuevaApp()` crea otra app sobre la misma base de datos (simula reiniciar el servidor).
 // `erroresRegistrados` junta lo que la app registraría en la consola.
 export async function crearEntornoDePrueba(opcionesApp = {}) {
   const db = abrirBaseDeDatos(':memory:');
   aplicarMigraciones(db);
   const usuario = await crearUsuario(db, { nombre: NOMBRE, correo: CORREO, password: PASSWORD }, { costo: 4 });
+  const carpetaFotos = nuevaCarpetaDeFotos();
 
   const erroresRegistrados = [];
   const nuevaApp = () =>
     crearApp({
       db,
       sessionSecret: SECRETO_DE_PRUEBA,
+      carpetaFotos,
       registrarError: (error) => erroresRegistrados.push(error),
       ...opcionesApp,
     });
 
-  return { db, usuario, app: nuevaApp(), nuevaApp, erroresRegistrados };
+  return { db, usuario, app: nuevaApp(), nuevaApp, erroresRegistrados, carpetaFotos };
 }
 
 // Devuelve "nombre=valor" de la cookie de sesión que envía la respuesta, o null si no envía ninguna.

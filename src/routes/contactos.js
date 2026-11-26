@@ -1,5 +1,8 @@
 import { Router } from 'express';
+import { verificarCsrf } from '../middlewares/csrf.js';
+import { recibirFoto } from '../middlewares/subida-foto.js';
 import { listarContactos } from '../services/busqueda.js';
+import { ErrorDeFoto, cambiarFoto, quitarFoto } from '../services/fotos.js';
 import {
   ConflictoDeEdicion,
   archivarContacto,
@@ -17,6 +20,10 @@ import {
 } from '../validators/reglas.js';
 import { formatearTelefono } from '../validators/telefonos.js';
 import { ErrorDeValidacion, erroresPorCampo } from '../validators/validar.js';
+
+// Rutas con formulario multipart: quedan fuera de la verificación CSRF global (src/app.js) y la
+// hacen ellas mismas con verificarCsrf, después de que multer lee el cuerpo (ver middlewares/csrf.js).
+export const RUTAS_MULTIPART = Object.freeze([{ metodo: 'POST', patron: /^\/contactos\/[^/]+\/foto$/ }]);
 
 // B3: dirección del listado con estos filtros. Omite los valores por defecto, así la dirección
 // queda corta: /contactos, /contactos?q=perez&pagina=2.
@@ -137,8 +144,20 @@ function datosDelError(error) {
   };
 }
 
+// Detalle del contacto. `errorFoto`: mensaje junto al formulario de la foto (F1–F4).
+function mostrarDetalle(res, contacto, { estado = 200, errorFoto = null } = {}) {
+  res.status(estado).render('contactos/detalle', {
+    titulo: `${contacto.nombres} ${contacto.apellidos}`,
+    contacto,
+    errorFoto,
+  });
+}
+
 // Rutas de contactos (todas requieren sesión: se registran después de requiereSesion).
-export function crearRutasContactos(db) {
+//   carpetaFotos    dónde se guardan las fotos
+//   registrarError  dónde se registra un error que no corta la respuesta (por ejemplo, no poder
+//                   borrar el archivo de la foto anterior)
+export function crearRutasContactos(db, { carpetaFotos, registrarError }) {
   const router = Router();
 
   // B1–B3: listado con búsqueda, filtros y paginación (página completa).
@@ -181,7 +200,63 @@ export function crearRutasContactos(db) {
     if (!contacto) {
       return next(); // página no encontrada
     }
-    res.render('contactos/detalle', { titulo: `${contacto.nombres} ${contacto.apellidos}`, contacto });
+    mostrarDetalle(res, contacto);
+  });
+
+  // Corta antes de leer el cuerpo si el contacto no existe (→ 404): no se recibe una foto en vano.
+  function exigirContacto(req, res, next) {
+    const id = leerId(req.params.id);
+    next(id !== null && buscarContacto(db, id) ? undefined : 'route');
+  }
+
+  // C4, F1–F4: cambiar la foto. Orden: multer lee el formulario (en memoria) → se verifica el token
+  // CSRF → se valida y reprocesa la imagen → archivo → base de datos.
+  router.post('/contactos/:id/foto', exigirContacto, recibirFoto, verificarCsrf, async (req, res) => {
+    const contacto = contactoDeLaRuta(req);
+    if (req.errorDeSubida) {
+      return mostrarDetalle(res, contacto, { estado: req.errorDeSubida.estado, errorFoto: req.errorDeSubida.mensaje });
+    }
+    if (!req.file) {
+      return mostrarDetalle(res, contacto, { estado: 400, errorFoto: 'Elige una foto.' });
+    }
+    try {
+      await cambiarFoto(db, {
+        carpeta: carpetaFotos,
+        contactoId: contacto.id,
+        contenido: req.file.buffer,
+        usuarioId: req.usuario.id,
+        registrarError,
+      });
+    } catch (error) {
+      if (error instanceof ErrorDeFoto) {
+        return mostrarDetalle(res, contacto, { estado: 400, errorFoto: error.message });
+      }
+      if (error instanceof ConflictoDeEdicion) {
+        req.session.aviso = 'Este contacto está archivado: restáuralo para cambiar la foto.';
+        return res.redirect(303, `/contactos/${contacto.id}`);
+      }
+      throw error;
+    }
+    req.session.aviso = 'Foto actualizada.';
+    res.redirect(303, `/contactos/${contacto.id}`);
+  });
+
+  // C4: quitar la foto (formulario normal, con la verificación CSRF global).
+  router.post('/contactos/:id/foto/quitar', async (req, res, next) => {
+    const id = leerId(req.params.id);
+    if (id === null) {
+      return next();
+    }
+    try {
+      const quitada = await quitarFoto(db, { carpeta: carpetaFotos, contactoId: id, usuarioId: req.usuario.id, registrarError });
+      req.session.aviso = quitada ? 'Foto quitada.' : 'El contacto no tenía foto.';
+    } catch (error) {
+      if (!(error instanceof ConflictoDeEdicion)) {
+        throw error;
+      }
+      req.session.aviso = 'Este contacto está archivado: restáuralo para cambiar la foto.';
+    }
+    res.redirect(303, `/contactos/${id}`);
   });
 
   // Editar (C7). Un contacto archivado no se edita (C5): se vuelve a su detalle, que ofrece restaurarlo.

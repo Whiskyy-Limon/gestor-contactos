@@ -23,6 +23,16 @@ export const LETRAS_NO_ASCII_NOMBRE = 'áéíóúüñÁÉÍÓÚÜÑ';
 // C6: tipos de contacto.
 export const TIPOS_CONTACTO = Object.freeze(['cliente', 'proveedor', 'ambos']);
 
+// F1, F2: formatos de foto aceptados (según el contenido real) y tamaño máximo del archivo.
+export const FORMATOS_FOTO = Object.freeze(['jpeg', 'png', 'webp']);
+export const MAXIMO_BYTES_FOTO = 2 * 1024 * 1024;
+
+// F4: píxeles máximos de una foto (25 megapíxeles, por ejemplo 5000 × 5000).
+export const MAXIMO_PIXELES_FOTO = 25_000_000;
+
+// F3: lado mayor de la foto ya reprocesada, en píxeles.
+export const LADO_MAXIMO_FOTO = 512;
+
 // B3: contactos por página del listado.
 export const CONTACTOS_POR_PAGINA = 20;
 

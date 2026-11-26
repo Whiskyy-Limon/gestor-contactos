@@ -10,9 +10,11 @@ import crypto from 'node:crypto';
 // sesión. La página maliciosa no puede leer nuestras páginas (política del mismo origen), así que
 // no conoce el token.
 //
-// Pendiente para la etapa de fotos: el cuerpo de un formulario multipart lo lee multer después de
-// este middleware, que hoy lo rechazaría con 403 por no ver el token. Esas rutas tendrán que quedar
-// fuera de esta verificación y verificar el token ellas mismas, después de multer.
+// Formularios multipart (la foto de un contacto): su cuerpo lo lee multer en la propia ruta, así
+// que el middleware global todavía no ve el campo `_csrf`. Esas rutas se declaran una por una
+// (método y ruta) en la lista `excepto`, quedan fuera de la verificación global y la hacen ellas
+// mismas con `verificarCsrf`, después de multer. La excepción NO se decide por el Content-Type:
+// si no, un atacante podría enviar un multipart a cualquier otra ruta y saltarse el control.
 
 const METODOS_SEGUROS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const MENSAJE_TOKEN_INVALIDO =
@@ -36,15 +38,8 @@ function tokensIguales(recibido, esperado) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-export function proteccionCsrf(req, res, next) {
-  // Las vistas llaman a csrfToken() al dibujar un formulario. Recién entonces se crea el token,
-  // así una visita a una página sin formularios no crea una sesión.
-  res.locals.csrfToken = () => obtenerToken(req);
-
-  if (METODOS_SEGUROS.has(req.method)) {
-    return next();
-  }
-
+// Verifica el token del cuerpo ya leído (campo `_csrf`) o de la cabecera X-CSRF-Token.
+export function verificarCsrf(req, res, next) {
   const recibido = req.body?._csrf ?? req.get('x-csrf-token');
   if (!tokensIguales(recibido, req.session?.csrfToken)) {
     const error = new Error('Token CSRF ausente o inválido');
@@ -53,4 +48,22 @@ export function proteccionCsrf(req, res, next) {
     return next(error);
   }
   next();
+}
+
+// Middleware global. `excepto`: [{ metodo, patron }] de las rutas multipart que verifican el token
+// ellas mismas, después de leer el cuerpo.
+export function crearProteccionCsrf({ excepto = [] } = {}) {
+  return function proteccionCsrf(req, res, next) {
+    // Las vistas llaman a csrfToken() al dibujar un formulario. Recién entonces se crea el token,
+    // así una visita a una página sin formularios no crea una sesión.
+    res.locals.csrfToken = () => obtenerToken(req);
+
+    if (METODOS_SEGUROS.has(req.method)) {
+      return next();
+    }
+    if (excepto.some(({ metodo, patron }) => metodo === req.method && patron.test(req.path))) {
+      return next();
+    }
+    verificarCsrf(req, res, next);
+  };
 }

@@ -28,7 +28,7 @@ Sistema web para que una pequeña empresa gestione sus contactos (clientes y pro
 - Avisos de una sola vez ("Contacto creado."): `req.session.aviso = '…'` antes de redirigir; la cabecera lo muestra (y lo borra) en la próxima página completa. Las redirecciones y los fragmentos no lo consumen.
 - Toda respuesta dinámica lleva `Cache-Control: no-store` (middleware `sinCache`); los archivos estáticos no.
 - Actualizaciones sin recargar (búsqueda en vivo): el servidor devuelve un fragmento renderizado con la misma vista parcial que usa la página completa; el navegador nunca arma HTML con datos. La lógica de cada script (esperas, cancelaciones) va en una función que recibe sus dependencias, para probarla en Node con temporizadores simulados; la conexión con la página queda aparte.
-- CSRF: todo formulario POST lleva `<input type="hidden" name="_csrf" value="<%= csrfToken() %>">` (o la cabecera `X-CSRF-Token`). Pendiente para la etapa de fotos: el middleware global no puede leer el cuerpo de un formulario multipart (lo lee multer, más adelante), así que hoy lo rechazaría con 403. Esas rutas tendrán que quedar fuera de la verificación global y verificar el token ellas mismas, después de multer.
+- CSRF: todo formulario POST lleva `<input type="hidden" name="_csrf" value="<%= csrfToken() %>">` (o la cabecera `X-CSRF-Token`). Formularios multipart (la foto): el middleware global no puede leer su cuerpo (lo lee multer en la ruta), así que cada ruta multipart se declara en `RUTAS_MULTIPART` (`src/routes/contactos.js`), queda fuera de la verificación global y verifica el token ella misma con `verificarCsrf`, después de multer. La excepción es por método y ruta, nunca por `Content-Type`. En el formulario, el campo `_csrf` va antes del archivo.
 - Errores: nunca se muestra el stack ni el mensaje interno al usuario. Para un error del cliente, lanzar un error con `status` (4xx) y, si hace falta, `mensajePublico` en español.
 - Las pruebas viven en `tests/` y se llaman `*.test.js`. Las utilidades compartidas van en `tests/helpers/` (por ejemplo `app-de-prueba.js`: base de datos en memoria, usuario de prueba y secreto propio).
 - Las reglas de negocio están en `docs/REGLAS-NEGOCIO.md`, cada una con un código (C1, T2…). Cita ese código en el código y en las pruebas que la implementan.
@@ -52,7 +52,7 @@ src/
   routes/           rutas, delgadas: reciben la petición, llaman a un servicio y responden
   services/         lógica de negocio y acceso a datos
   validators/       esquemas zod
-  middlewares/      auth, csrf, errores, upload
+  middlewares/      auth, csrf, errores, avisos, seguridad, subida-foto (multer)
   views/            plantillas EJS y ayudantes.js (presentación: fechas, teléfonos, iniciales)
 docs/               reglas de negocio (REGLAS-NEGOCIO.md)
 public/             CSS y archivos estáticos

@@ -336,6 +336,31 @@ a.boton {
   border-radius: 50%;
 }
 
+.avatar--foto {
+  object-fit: cover;
+  background: var(--color-fondo);
+}
+
+/* Formulario de la foto en el detalle */
+.foto {
+  margin-bottom: 1.25rem;
+}
+
+.foto__formulario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.foto__formulario label {
+  flex-basis: 100%;
+}
+
+.foto__quitar {
+  margin-top: 0.75rem;
+}
+
 .avatar--chico {
   width: 2.25rem;
   height: 2.25rem;
