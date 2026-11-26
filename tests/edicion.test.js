@@ -250,7 +250,7 @@ describe('contactos: editar, archivar y restaurar', () => {
       const html = (await agente.get(`/contactos/${id}`)).text;
 
       assert.ok(html.includes(`<a href="/contactos/${id}/editar" class="boton">Editar</a>`));
-      assert.ok(html.includes(`<a href="/contactos/${id}/archivar" class="boton boton--secundario">Archivar</a>`));
+      assert.ok(html.includes(`<a href="/contactos/${id}/archivar" class="boton boton--peligro-contorno">Archivar</a>`));
       assert.ok(!html.includes('/restaurar'));
     });
 
@@ -340,6 +340,7 @@ describe('contactos: editar, archivar y restaurar', () => {
       const confirmacion = (await agente.get(`/contactos/${id}/archivar`)).text;
       assert.match(confirmacion, /¿Archivar a José Álvarez Núñez\?/);
       assert.ok(confirmacion.includes(`<form method="post" action="/contactos/${id}/archivar"`));
+      assert.ok(confirmacion.includes('<button type="submit" class="boton boton--peligro">Archivar</button>'));
 
       const respuesta = await enviarFormulario(agente, {
         pagina: `/contactos/${id}/archivar`,

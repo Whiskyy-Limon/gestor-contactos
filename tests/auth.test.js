@@ -66,6 +66,33 @@ describe('autenticación', () => {
       assert.match(listado.text, /<form method="post" action="\/logout"/);
     });
 
+    it('la cabecera muestra el avatar con las iniciales del usuario', async () => {
+      const agente = request.agent(entorno.app);
+      await iniciarSesion(agente);
+
+      const html = (await agente.get('/contactos')).text;
+
+      // NOMBRE es "Ana Pérez".
+      assert.match(html, /<span class="avatar avatar--mini avatar--\d" aria-hidden="true">AP<\/span>/);
+    });
+
+    it('el login no muestra la cabecera de la app: la marca va sobre el formulario', async () => {
+      const html = (await request(entorno.app).get('/login')).text;
+
+      assert.match(html, /<body class="pagina-acceso">/);
+      assert.doesNotMatch(html, /<header class="barra">/);
+      assert.match(html, /<p class="acceso__nombre">Gestor de contactos<\/p>/);
+    });
+
+    it('toda página enlaza el ícono de la app (favicon), que se sirve como SVG', async () => {
+      const html = (await request(entorno.app).get('/login')).text;
+      assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml">/);
+
+      const icono = await request(entorno.app).get('/favicon.svg');
+      assert.equal(icono.status, 200);
+      assert.match(icono.headers['content-type'], /^image\/svg\+xml/);
+    });
+
     it('acepta el correo con mayúsculas y espacios alrededor', async () => {
       const login = await iniciarSesion(request.agent(entorno.app), { correo: '  ANA@Empresa.pe ' });
 

@@ -27,7 +27,7 @@
   <% } else { %>
     <div class="acciones acciones--ficha">
       <a href="/contactos/<%= contacto.id %>/editar" class="boton">Editar</a>
-      <a href="/contactos/<%= contacto.id %>/archivar" class="boton boton--secundario">Archivar</a>
+      <a href="/contactos/<%= contacto.id %>/archivar" class="boton boton--peligro-contorno">Archivar</a>
     </div>
 
     <%# C4: la foto se cambia en un formulario aparte (multipart). Su token CSRF lo verifica la ruta

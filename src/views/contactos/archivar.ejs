@@ -7,7 +7,7 @@
 
   <form method="post" action="/contactos/<%= contacto.id %>/archivar" class="acciones">
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-    <button type="submit" class="boton">Archivar</button>
+    <button type="submit" class="boton boton--peligro">Archivar</button>
     <a href="/contactos/<%= contacto.id %>" class="boton boton--secundario">Cancelar</a>
   </form>
 </section>

@@ -1,26 +1,40 @@
+<%#
+  Comienzo de toda página: <head>, la cabecera y el aviso de una sola vez.
+  `paginaDeAcceso: true` (el login) la muestra sin la cabecera: la marca va sobre la tarjeta.
+-%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title><%= titulo %> · Gestor de contactos</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/estilos.css">
 </head>
-<body>
-  <header class="barra">
-    <a class="marca" href="/">Gestor de contactos</a>
-    <% if (locals.usuario) { %>
-      <nav class="barra__nav" aria-label="Principal">
-        <a href="/contactos">Contactos</a>
-        <a href="/contactos/nuevo">Nuevo contacto</a>
-      </nav>
-      <form method="post" action="/logout" class="barra__salir">
-        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <span class="barra__usuario"><%= usuario.nombre %></span>
-        <button type="submit" class="boton boton--secundario">Cerrar sesión</button>
-      </form>
-    <% } %>
-  </header>
+<body<% if (locals.paginaDeAcceso) { %> class="pagina-acceso"<% } %>>
+  <% if (!locals.paginaDeAcceso) { %>
+    <header class="barra">
+      <a class="marca" href="/">
+        <%- include('icono-app', { clase: 'marca__icono' }) %>
+        <span>Gestor de contactos</span>
+      </a>
+      <% if (locals.usuario) { %>
+        <nav class="barra__nav" aria-label="Principal">
+          <a href="/contactos">Contactos</a>
+          <a href="/contactos/nuevo">Nuevo contacto</a>
+        </nav>
+        <div class="barra__cuenta">
+          <span class="avatar avatar--mini <%= colorDeAvatar(usuario.id) %>" aria-hidden="true"><%= inicialesDeNombre(usuario.nombre) %></span>
+          <span class="barra__usuario"><%= usuario.nombre %></span>
+          <form method="post" action="/logout" class="barra__salir">
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <button type="submit" class="boton boton--secundario">Cerrar sesión</button>
+          </form>
+        </div>
+      <% } %>
+    </header>
+  <% } %>
   <main class="contenido">
     <%# tomarAviso no existe si el error ocurrió antes de cargar la sesión (por ejemplo, un formulario
         demasiado grande). -%>
