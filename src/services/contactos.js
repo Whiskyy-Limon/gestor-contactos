@@ -20,6 +20,59 @@ function buscarPorDni(db, dni) {
   return db.prepare('SELECT id, nombres, apellidos, archivado_en FROM contactos WHERE dni = ?').get(dni);
 }
 
+// El DNI repetido lo detecta el UNIQUE de la tabla, que también funciona si dos personas guardan el
+// mismo DNI a la vez. Recién entonces se busca quién lo tiene, para el mensaje.
+function esDniRepetido(error) {
+  return error.code === 'SQLITE_CONSTRAINT_UNIQUE' && error.message.includes('contactos.dni');
+}
+
+const AHORA = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')";
+
+// C7 y C5: una edición que no se guardó porque el contacto cambió mientras se editaba
+// (motivo 'version') o porque está archivado (motivo 'archivado').
+// `actual` describe la versión guardada: { version, por, en } (quién y cuándo la modificó).
+export class ConflictoDeEdicion extends Error {
+  constructor(motivo, actual) {
+    super(`No se guardó la edición del contacto: ${motivo}`);
+    this.name = 'ConflictoDeEdicion';
+    this.status = 409;
+    this.motivo = motivo;
+    this.actual = actual;
+  }
+}
+
+function contactoNoEncontrado() {
+  const error = new Error('Contacto no encontrado');
+  error.status = 404;
+  return error;
+}
+
+function existeContacto(db, id) {
+  return db.prepare('SELECT 1 FROM contactos WHERE id = ?').get(id) !== undefined;
+}
+
+// C7: versión que llegó en el campo oculto del formulario. Si no es un entero válido, 0: no
+// coincide con ninguna (la columna exige version >= 1), así que se trata como un conflicto.
+function versionDelFormulario(valor) {
+  return typeof valor === 'string' && /^[1-9]\d{0,9}$/.test(valor) ? Number(valor) : 0;
+}
+
+// Por qué el UPDATE no modificó el contacto `id`: no existe, está archivado o cambió de versión.
+function motivoDelRechazo(db, id) {
+  const fila = db
+    .prepare(
+      `SELECT c.version, c.archivado_en, c.actualizado_en, u.nombre AS actualizado_por
+       FROM contactos c JOIN usuarios u ON u.id = c.actualizado_por
+       WHERE c.id = ?`,
+    )
+    .get(id);
+  if (!fila) {
+    return contactoNoEncontrado();
+  }
+  const actual = { version: fila.version, por: fila.actualizado_por, en: fila.actualizado_en };
+  return new ConflictoDeEdicion(fila.archivado_en !== null ? 'archivado' : 'version', actual);
+}
+
 function insertarTelefonosYCorreos(db, contactoId, { telefonos, correos }) {
   const insertarTelefono = db.prepare('INSERT INTO telefonos (contacto_id, numero, tipo) VALUES (?, ?, ?)');
   for (const { numero, tipo } of telefonos) {
@@ -54,13 +107,77 @@ export function crearContacto(db, entrada, usuarioId) {
   try {
     return crear();
   } catch (error) {
-    // El DNI repetido lo detecta el UNIQUE de la tabla, que también funciona si dos personas guardan
-    // el mismo DNI a la vez. Recién entonces se busca quién lo tiene, para el mensaje.
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' && error.message.includes('contactos.dni')) {
-      throw errorDniRepetido(buscarPorDni(db, datos.dni));
-    }
-    throw error;
+    throw esDniRepetido(error) ? errorDniRepetido(buscarPorDni(db, datos.dni)) : error;
   }
+}
+
+// Edita un contacto: reemplaza sus datos, sus teléfonos y sus correos, en una transacción.
+// `entrada.version` es la versión que se leyó al abrir el formulario (C7): si el contacto cambió
+// desde entonces, no se guarda nada. Un contacto archivado no se edita (C5). Queda `usuarioId`
+// como su última modificación (A1).
+// Lanza ErrorDeValidacion (datos inválidos o DNI de otro contacto), ConflictoDeEdicion, o un error
+// 404 si el contacto no existe.
+export function editarContacto(db, id, entrada, usuarioId) {
+  const datos = validar(esquemaContacto, entrada);
+  const version = versionDelFormulario(entrada.version);
+
+  const editar = db.transaction(() => {
+    // Solo modifica si la versión es la que se leyó y el contacto no está archivado.
+    const resultado = db
+      .prepare(
+        `UPDATE contactos
+         SET nombres = @nombres, apellidos = @apellidos, dni = @dni, tipo = @tipo,
+             actualizado_por = @usuarioId, actualizado_en = ${AHORA}, version = version + 1
+         WHERE id = @id AND version = @version AND archivado_en IS NULL`,
+      )
+      .run({ nombres: datos.nombres, apellidos: datos.apellidos, dni: datos.dni, tipo: datos.tipo, usuarioId, id, version });
+    if (resultado.changes === 0) {
+      throw motivoDelRechazo(db, id);
+    }
+
+    db.prepare('DELETE FROM telefonos WHERE contacto_id = ?').run(id);
+    db.prepare('DELETE FROM correos WHERE contacto_id = ?').run(id);
+    insertarTelefonosYCorreos(db, id, datos);
+  });
+
+  try {
+    editar();
+  } catch (error) {
+    throw esDniRepetido(error) ? errorDniRepetido(buscarPorDni(db, datos.dni)) : error;
+  }
+}
+
+// C5, A1: archiva un contacto, con fecha y autor. Devuelve false si ya estaba archivado.
+// Archivar no cuenta como su última modificación (tiene sus propias columnas), pero sí aumenta la
+// versión (C7): una edición abierta antes ya no se puede guardar.
+export function archivarContacto(db, id, usuarioId) {
+  const { changes } = db
+    .prepare(
+      `UPDATE contactos SET archivado_en = ${AHORA}, archivado_por = ?, version = version + 1
+       WHERE id = ? AND archivado_en IS NULL`,
+    )
+    .run(usuarioId, id);
+  if (changes === 0 && !existeContacto(db, id)) {
+    throw contactoNoEncontrado();
+  }
+  return changes === 1;
+}
+
+// C5, A1: restaura un contacto archivado. Se borra quién lo archivó y restaurar cuenta como su
+// última modificación. Devuelve false si no estaba archivado.
+export function restaurarContacto(db, id, usuarioId) {
+  const { changes } = db
+    .prepare(
+      `UPDATE contactos
+       SET archivado_en = NULL, archivado_por = NULL,
+           actualizado_por = ?, actualizado_en = ${AHORA}, version = version + 1
+       WHERE id = ? AND archivado_en IS NOT NULL`,
+    )
+    .run(usuarioId, id);
+  if (changes === 0 && !existeContacto(db, id)) {
+    throw contactoNoEncontrado();
+  }
+  return changes === 1;
 }
 
 // Contacto completo para la página de detalle, con su auditoría (A1), o null si no existe.

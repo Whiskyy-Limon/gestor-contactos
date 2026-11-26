@@ -132,6 +132,32 @@ body {
   border-radius: var(--radio);
 }
 
+.alerta p {
+  margin: 0.25rem 0;
+}
+
+/* Detalle de un contacto archivado (C5): aviso y botón "Restaurar". */
+.archivado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  color: var(--color-error-texto);
+  background: var(--color-error-fondo);
+  border-radius: var(--radio);
+}
+
+.archivado p {
+  margin: 0;
+}
+
+.acciones--ficha {
+  margin-bottom: 1.25rem;
+}
+
 .aviso {
   max-width: 720px;
   margin: 0 auto 1rem;

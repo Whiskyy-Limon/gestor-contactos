@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { listarContactos } from '../services/busqueda.js';
-import { buscarContacto, crearContacto } from '../services/contactos.js';
+import {
+  ConflictoDeEdicion,
+  archivarContacto,
+  buscarContacto,
+  crearContacto,
+  editarContacto,
+  restaurarContacto,
+} from '../services/contactos.js';
 import { esquemaFiltrosListado } from '../validators/contactos.js';
 import {
   MAXIMO_CARACTERES_BUSQUEDA,
@@ -8,6 +15,7 @@ import {
   MAXIMO_TELEFONOS_POR_CONTACTO,
   TIPOS_CONTACTO,
 } from '../validators/reglas.js';
+import { formatearTelefono } from '../validators/telefonos.js';
 import { ErrorDeValidacion, erroresPorCampo } from '../validators/validar.js';
 
 // B3: dirección del listado con estos filtros. Omite los valores por defecto, así la dirección
@@ -79,15 +87,54 @@ function valoresDelFormulario(cuerpo = {}) {
   };
 }
 
-function mostrarFormulario(res, { estado = 200, valores, errores = {}, dniRepetido = null }) {
+// Valores para el formulario de edición: lo guardado, con los teléfonos en su formato habitual.
+function valoresDelContacto(contacto) {
+  return {
+    nombres: contacto.nombres,
+    apellidos: contacto.apellidos,
+    dni: contacto.dni,
+    tipo: contacto.tipo,
+    telefonos: filasDelFormulario(
+      contacto.telefonos.map(({ numero, tipo }) => formatearTelefono(numero, tipo)),
+      MAXIMO_TELEFONOS_POR_CONTACTO,
+    ),
+    correos: filasDelFormulario(contacto.correos, MAXIMO_CORREOS_POR_CONTACTO),
+  };
+}
+
+// Formulario de contacto, para crear (sin contactoId) o para editar (con contactoId y version).
+//   errores      { campo: mensaje } de la validación
+//   dniRepetido  { id, nombre, archivado } del contacto que ya tiene el DNI (C2)
+//   conflicto    { motivo, por, en } si la edición no se guardó (C7, C5)
+function mostrarFormulario(
+  res,
+  { estado = 200, contactoId = null, version = null, valores, errores = {}, dniRepetido = null, conflicto = null },
+) {
+  const editando = contactoId !== null;
   res.status(estado).render('contactos/formulario', {
-    titulo: 'Nuevo contacto',
-    accion: '/contactos',
+    titulo: editando ? 'Editar contacto' : 'Nuevo contacto',
+    accion: editando ? `/contactos/${contactoId}/editar` : '/contactos',
+    textoBoton: editando ? 'Guardar cambios' : 'Guardar contacto',
+    cancelar: editando ? `/contactos/${contactoId}` : '/contactos',
+    contactoId,
+    version,
     tipos: TIPOS_CONTACTO,
     valores,
     errores,
     dniRepetido,
+    // C2: al registrar un DNI de un contacto archivado se ofrece restaurarlo. Al editar otro
+    // contacto no: restaurar ese no resuelve la edición en curso.
+    ofrecerRestaurar: !editando,
+    conflicto,
   });
+}
+
+// Datos de un ErrorDeValidacion para volver a mostrar el formulario.
+function datosDelError(error) {
+  return {
+    errores: erroresPorCampo(error.errores),
+    dniRepetido: error.errores.find((e) => e.contacto)?.contacto ?? null,
+  };
 }
 
 // Rutas de contactos (todas requieren sesión: se registran después de requiereSesion).
@@ -119,22 +166,101 @@ export function crearRutasContactos(db) {
         throw error;
       }
       // Se vuelve a mostrar el formulario con lo escrito y cada mensaje junto a su campo.
-      mostrarFormulario(res, {
-        estado: 400,
-        valores: valoresDelFormulario(req.body),
-        errores: erroresPorCampo(error.errores),
-        dniRepetido: error.errores.find((e) => e.contacto)?.contacto ?? null,
-      });
+      mostrarFormulario(res, { estado: 400, valores: valoresDelFormulario(req.body), ...datosDelError(error) });
     }
   });
 
-  router.get('/contactos/:id', (req, res, next) => {
+  // Contacto de la URL, o null si el id no tiene la forma correcta o no existe (→ 404).
+  function contactoDeLaRuta(req) {
     const id = leerId(req.params.id);
-    const contacto = id === null ? null : buscarContacto(db, id);
+    return id === null ? null : buscarContacto(db, id);
+  }
+
+  router.get('/contactos/:id', (req, res, next) => {
+    const contacto = contactoDeLaRuta(req);
     if (!contacto) {
       return next(); // página no encontrada
     }
     res.render('contactos/detalle', { titulo: `${contacto.nombres} ${contacto.apellidos}`, contacto });
+  });
+
+  // Editar (C7). Un contacto archivado no se edita (C5): se vuelve a su detalle, que ofrece restaurarlo.
+  router.get('/contactos/:id/editar', (req, res, next) => {
+    const contacto = contactoDeLaRuta(req);
+    if (!contacto) {
+      return next();
+    }
+    if (contacto.archivado) {
+      req.session.aviso = 'Este contacto está archivado: restáuralo para poder editarlo.';
+      return res.redirect(302, `/contactos/${contacto.id}`);
+    }
+    mostrarFormulario(res, {
+      contactoId: contacto.id,
+      version: contacto.version,
+      valores: valoresDelContacto(contacto),
+    });
+  });
+
+  router.post('/contactos/:id/editar', (req, res, next) => {
+    const contacto = contactoDeLaRuta(req);
+    if (!contacto) {
+      return next();
+    }
+    try {
+      editarContacto(db, contacto.id, req.body ?? {}, req.usuario.id);
+      req.session.aviso = 'Cambios guardados.';
+      res.redirect(303, `/contactos/${contacto.id}`);
+    } catch (error) {
+      // En los dos casos se vuelve a mostrar lo que se escribió, para no perderlo.
+      const comun = { contactoId: contacto.id, valores: valoresDelFormulario(req.body) };
+      if (error instanceof ErrorDeValidacion) {
+        return mostrarFormulario(res, { ...comun, estado: 400, version: req.body?.version, ...datosDelError(error) });
+      }
+      if (error instanceof ConflictoDeEdicion) {
+        // C7: el formulario lleva ahora la versión guardada; si se vuelve a guardar, la reemplaza
+        // a sabiendas.
+        return mostrarFormulario(res, {
+          ...comun,
+          estado: 409,
+          version: error.actual.version,
+          conflicto: { motivo: error.motivo, por: error.actual.por, en: error.actual.en },
+        });
+      }
+      throw error;
+    }
+  });
+
+  // Archivar (C5): primero una página de confirmación; el POST archiva.
+  router.get('/contactos/:id/archivar', (req, res, next) => {
+    const contacto = contactoDeLaRuta(req);
+    if (!contacto) {
+      return next();
+    }
+    if (contacto.archivado) {
+      return res.redirect(302, `/contactos/${contacto.id}`);
+    }
+    res.render('contactos/archivar', { titulo: 'Archivar contacto', contacto });
+  });
+
+  router.post('/contactos/:id/archivar', (req, res, next) => {
+    const id = leerId(req.params.id);
+    if (id === null) {
+      return next();
+    }
+    const archivado = archivarContacto(db, id, req.usuario.id);
+    req.session.aviso = archivado ? 'Contacto archivado.' : 'El contacto ya estaba archivado.';
+    res.redirect(303, `/contactos/${id}`);
+  });
+
+  // Restaurar (C5): sin confirmación, porque solo deshace el archivado.
+  router.post('/contactos/:id/restaurar', (req, res, next) => {
+    const id = leerId(req.params.id);
+    if (id === null) {
+      return next();
+    }
+    const restaurado = restaurarContacto(db, id, req.usuario.id);
+    req.session.aviso = restaurado ? 'Contacto restaurado.' : 'El contacto no estaba archivado.';
+    res.redirect(303, `/contactos/${id}`);
   });
 
   return router;

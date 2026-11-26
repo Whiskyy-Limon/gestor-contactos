@@ -2,6 +2,26 @@
 <section class="tarjeta tarjeta--ancha">
   <h1><%= titulo %></h1>
 
+  <%# C7 y C5: la edición no se guardó porque el contacto cambió o fue archivado mientras se editaba.
+      El formulario conserva lo escrito y ya lleva la versión guardada: volver a guardar la reemplaza. -%>
+  <% if (conflicto && conflicto.motivo === 'version') { %>
+    <div class="alerta" role="alert">
+      <p><strong>No se guardaron tus cambios:</strong> <%= conflicto.por %> modificó este contacto el
+        <%= formatearFecha(conflicto.en) %>, mientras lo editabas.</p>
+      <p>Abajo sigue lo que escribiste. Revisa la
+        <a href="/contactos/<%= contactoId %>" target="_blank" rel="noopener">versión guardada</a>
+        (se abre en otra pestaña) y, si igual quieres reemplazarla con lo que escribiste, vuelve a guardar.</p>
+    </div>
+  <% } else if (conflicto && conflicto.motivo === 'archivado') { %>
+    <div class="alerta" role="alert">
+      <p><strong>No se guardaron tus cambios:</strong> este contacto fue archivado mientras lo editabas, y un
+        contacto archivado no se puede modificar.</p>
+      <p>Abajo sigue lo que escribiste. Para guardarlo,
+        <a href="/contactos/<%= contactoId %>" target="_blank" rel="noopener">restaura el contacto</a>
+        (se abre en otra pestaña) y vuelve a guardar.</p>
+    </div>
+  <% } %>
+
   <% if (Object.keys(errores).length > 0) { %>
     <p class="alerta" role="alert">Revisa los campos marcados: hay datos que faltan o no son válidos.</p>
   <% } %>
@@ -9,6 +29,10 @@
   <%# novalidate: los mensajes de error salen todos del servidor, que es quien valida las reglas. -%>
   <form method="post" action="<%= accion %>" class="formulario" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <% if (version !== null) { %>
+      <%# C7: versión que se leyó al abrir el formulario. -%>
+      <input type="hidden" name="version" value="<%= version %>">
+    <% } %>
 
     <%- include('../partials/campo', { campo: {
       id: 'nombres', nombre: 'nombres', etiqueta: 'Nombres', valor: valores.nombres, error: errores.nombres,
@@ -26,6 +50,10 @@
         <a href="/contactos/<%= dniRepetido.id %>">
           <%= dniRepetido.archivado ? 'Ver el contacto archivado' : 'Ver el contacto' %>
         </a>
+        <% if (dniRepetido.archivado && ofrecerRestaurar) { %>
+          <%# C2: envía el formulario "restaurar-dni" (debajo): no se pueden anidar formularios. -%>
+          <button type="submit" form="restaurar-dni" class="boton boton--secundario">Restaurar ese contacto</button>
+        <% } %>
       </p>
     <% } %>
 
@@ -76,10 +104,16 @@
     </fieldset>
 
     <div class="acciones">
-      <button type="submit" class="boton">Guardar contacto</button>
-      <a href="/contactos" class="boton boton--secundario">Cancelar</a>
+      <button type="submit" class="boton"><%= textoBoton %></button>
+      <a href="<%= cancelar %>" class="boton boton--secundario">Cancelar</a>
     </div>
   </form>
+
+  <% if (dniRepetido && dniRepetido.archivado && ofrecerRestaurar) { %>
+    <form id="restaurar-dni" method="post" action="/contactos/<%= dniRepetido.id %>/restaurar" hidden>
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    </form>
+  <% } %>
 </section>
 <script src="/js/filas.js" defer></script>
 <%- include('../partials/pie') %>

@@ -1,0 +1,14 @@
+<%- include('../partials/cabecera') %>
+<%# C5: confirmación antes de archivar. Funciona sin JavaScript: el botón envía un POST con el token CSRF. -%>
+<section class="tarjeta">
+  <h1>¿Archivar a <%= contacto.nombres %> <%= contacto.apellidos %>?</h1>
+  <p>Dejará de aparecer en el listado. Sus datos no se borran: podrás verlo con el filtro
+    "Archivados" y restaurarlo cuando quieras.</p>
+
+  <form method="post" action="/contactos/<%= contacto.id %>/archivar" class="acciones">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <button type="submit" class="boton">Archivar</button>
+    <a href="/contactos/<%= contacto.id %>" class="boton boton--secundario">Cancelar</a>
+  </form>
+</section>
+<%- include('../partials/pie') %>

@@ -14,6 +14,23 @@
     </div>
   </header>
 
+  <%# C5: un contacto archivado es de solo lectura; se puede restaurar (sin confirmación, porque solo
+      deshace el archivado). Uno activo se puede editar o archivar (con confirmación). -%>
+  <% if (contacto.archivado) { %>
+    <div class="archivado">
+      <p>Este contacto está archivado: no aparece en el listado normal y no se puede editar.</p>
+      <form method="post" action="/contactos/<%= contacto.id %>/restaurar">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button type="submit" class="boton">Restaurar</button>
+      </form>
+    </div>
+  <% } else { %>
+    <div class="acciones acciones--ficha">
+      <a href="/contactos/<%= contacto.id %>/editar" class="boton">Editar</a>
+      <a href="/contactos/<%= contacto.id %>/archivar" class="boton boton--secundario">Archivar</a>
+    </div>
+  <% } %>
+
   <dl class="datos">
     <dt>DNI</dt>
     <dd><%= contacto.dni %></dd>
