@@ -22,6 +22,34 @@ function urlDelListado({ q, tipo, estado, pagina }) {
   return consulta ? `/contactos?${consulta}` : '/contactos';
 }
 
+// Texto que se anuncia a los lectores de pantalla después de una búsqueda en vivo.
+function anuncioDeResultados(total) {
+  if (total === 0) return 'No se encontraron contactos.';
+  if (total === 1) return '1 contacto encontrado.';
+  return `${total} contactos encontrados.`;
+}
+
+// Datos de las vistas del listado (página completa y fragmento de resultados) a partir de los
+// parámetros de la dirección (B1–B3).
+function datosDelListado(db, consulta) {
+  const filtros = esquemaFiltrosListado.parse(consulta);
+  const resultado = listarContactos(db, filtros);
+  const actuales = { ...filtros, pagina: resultado.pagina };
+
+  return {
+    titulo: filtros.estado === 'archivados' ? 'Contactos archivados' : 'Contactos',
+    filtros: actuales,
+    resultado,
+    maximoBusqueda: MAXIMO_CARACTERES_BUSQUEDA,
+    hayFiltros: filtros.q !== '' || filtros.tipo !== '',
+    // Dirección canónica de esta búsqueda: el navegador la pone en la barra de direcciones.
+    urlActual: urlDelListado(actuales),
+    anuncio: anuncioDeResultados(resultado.total),
+    // Enlace a otra página conservando la búsqueda y los filtros (B3).
+    enlace: (cambios) => urlDelListado({ ...actuales, ...cambios }),
+  };
+}
+
 // Id de la URL → entero positivo, o null si no tiene esa forma (y la ruta responde 404).
 function leerId(texto) {
   if (!/^[1-9]\d{0,15}$/.test(texto)) {
@@ -66,21 +94,15 @@ function mostrarFormulario(res, { estado = 200, valores, errores = {}, dniRepeti
 export function crearRutasContactos(db) {
   const router = Router();
 
-  // B1–B3: listado con búsqueda, filtros y paginación.
+  // B1–B3: listado con búsqueda, filtros y paginación (página completa).
   router.get('/contactos', (req, res) => {
-    const filtros = esquemaFiltrosListado.parse(req.query);
-    const resultado = listarContactos(db, filtros);
-    const actuales = { ...filtros, pagina: resultado.pagina };
+    res.render('contactos/listado', datosDelListado(db, req.query));
+  });
 
-    res.render('contactos/listado', {
-      titulo: filtros.estado === 'archivados' ? 'Contactos archivados' : 'Contactos',
-      filtros: actuales,
-      resultado,
-      maximoBusqueda: MAXIMO_CARACTERES_BUSQUEDA,
-      hayFiltros: filtros.q !== '' || filtros.tipo !== '',
-      // Enlace a otra página conservando la búsqueda y los filtros (B3).
-      enlace: (cambios) => urlDelListado({ ...actuales, ...cambios }),
-    });
+  // Solo los resultados, para la búsqueda en vivo (public/js/busqueda.js): el mismo HTML que la
+  // página completa, armado y escapado en el servidor. Va antes de /contactos/:id.
+  router.get('/contactos/resultados', (req, res) => {
+    res.render('contactos/resultados', datosDelListado(db, req.query));
   });
 
   router.get('/contactos/nuevo', (req, res) => {

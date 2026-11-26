@@ -1,5 +1,9 @@
 // Listado de contactos con búsqueda, filtros y paginación (B1–B3).
-import { CONTACTOS_POR_PAGINA, MAXIMO_PALABRAS_BUSQUEDA } from '../validators/reglas.js';
+import {
+  CONTACTOS_POR_PAGINA,
+  MAXIMO_PALABRAS_BUSQUEDA,
+  MINIMO_CARACTERES_BUSQUEDA_CORREO,
+} from '../validators/reglas.js';
 import { normalizarTelefono } from '../validators/telefonos.js';
 
 // B2: texto sin tildes ni diéresis, en minúsculas y con la ñ como n ("Núñez" → "nunez").
@@ -13,17 +17,34 @@ export function normalizarParaBusqueda(texto) {
   return texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
-// Patrón de LIKE que encuentra `texto` en cualquier parte. %, _ y \ se escapan (con ESCAPE '\'):
-// así "ana_maria" busca un guion bajo de verdad y no "cualquier carácter", y "%" no lo encuentra todo.
-function contiene(texto) {
-  return `%${texto.replace(/[\\%_]/g, '\\$&')}%`;
+// Patrones de LIKE. %, _ y \ se escapan (con ESCAPE '\'): así "ana_maria" busca un guion bajo de
+// verdad y no "cualquier carácter", y "%" no lo encuentra todo.
+function escaparLike(texto) {
+  return texto.replace(/[\\%_]/g, '\\$&');
+}
+const contiene = (texto) => `%${escaparLike(texto)}%`;
+const empiezaCon = (texto) => `${escaparLike(texto)}%`;
+// Comienzo de alguna palabra de NOMBRE_COMPLETO (cada palabra empieza después de un espacio).
+const empiezaUnaPalabra = (texto) => `% ${escaparLike(texto)}%`;
+
+// B2: nombres y apellidos sin tildes en una sola cadena, con un espacio adelante y con el guion y el
+// apóstrofo convertidos en espacios: "José María Rivas-Plata" → " jose maria rivas plata".
+const NOMBRE_COMPLETO = `(' ' || replace(replace(c.nombres_busqueda || ' ' || c.apellidos_busqueda, '-', ' '), '''', ' '))`;
+
+// B2: palabras de lo escrito, separadas como en NOMBRE_COMPLETO (espacios, guion y apóstrofo,
+// también el tipográfico).
+function palabrasBuscadas(texto) {
+  return normalizarParaBusqueda(texto)
+    .split(/[\s'’-]+/)
+    .filter(Boolean)
+    .slice(0, MAXIMO_PALABRAS_BUSQUEDA);
 }
 
 // Lo escrito parece un DNI o un teléfono: dígitos con espacios, guiones, paréntesis o "+".
 const PARECE_NUMERO = /^[\d\s()+-]*\d[\d\s()+-]*$/;
 
 // Dígitos para buscar entre los teléfonos guardados (B1: cualquier formato de T1–T4).
-// Un teléfono completo se normaliza como al guardarlo; uno incompleto se busca como parte del
+// Un teléfono completo se normaliza como al guardarlo; uno incompleto se busca como comienzo del
 // número, sin el +51 (T2) ni el 0 de provincia (T4), que no se guardan.
 function digitosDeTelefono(texto) {
   const telefono = normalizarTelefono(texto);
@@ -44,42 +65,48 @@ function digitosDeTelefono(texto) {
 // Condición SQL de la búsqueda (B1, B2) y sus parámetros, o null si no se escribió nada.
 // Un contacto aparece si coincide por nombre, por correo, por DNI o por teléfono.
 // El SQL se arma solo con fragmentos fijos de este archivo; lo escrito siempre va como parámetro.
-function condicionDeBusqueda(texto) {
+function condicionDeBusqueda(busqueda) {
+  const texto = busqueda.trim();
   if (texto === '') {
     return null;
   }
   const alternativas = [];
   const parametros = [];
 
-  // B2: cada palabra debe aparecer en los nombres o en los apellidos, en cualquier orden.
-  const palabras = normalizarParaBusqueda(texto).split(/\s+/).filter(Boolean).slice(0, MAXIMO_PALABRAS_BUSQUEDA);
+  // B2: cada palabra escrita debe ser el comienzo de alguna palabra de los nombres o apellidos,
+  // en cualquier orden.
+  const palabras = palabrasBuscadas(texto);
   if (palabras.length > 0) {
-    alternativas.push(
-      palabras.map(() => `(c.nombres_busqueda || ' ' || c.apellidos_busqueda) LIKE ? ESCAPE '\\'`).join(' AND '),
-    );
-    parametros.push(...palabras.map(contiene));
+    alternativas.push(palabras.map(() => `${NOMBRE_COMPLETO} LIKE ? ESCAPE '\\'`).join(' AND '));
+    parametros.push(...palabras.map(empiezaUnaPalabra));
   }
 
-  // Correo: cualquier parte (se guardan en minúsculas).
-  alternativas.push(
-    `EXISTS (SELECT 1 FROM correos e WHERE e.contacto_id = c.id AND e.correo LIKE ? ESCAPE '\\')`,
-  );
-  parametros.push(contiene(texto.toLowerCase()));
+  // B1: correo por "contiene" (se guardan en minúsculas), desde 3 caracteres.
+  if (texto.length >= MINIMO_CARACTERES_BUSQUEDA_CORREO) {
+    alternativas.push(
+      `EXISTS (SELECT 1 FROM correos e WHERE e.contacto_id = c.id AND e.correo LIKE ? ESCAPE '\\')`,
+    );
+    parametros.push(contiene(texto.toLowerCase()));
+  }
 
-  // DNI y teléfono: solo si lo escrito parece un número.
+  // B1: DNI y teléfono por "empieza con", solo si lo escrito parece un número.
   if (PARECE_NUMERO.test(texto)) {
     alternativas.push(`c.dni LIKE ? ESCAPE '\\'`);
-    parametros.push(contiene(texto.replace(/\D/g, '')));
+    parametros.push(empiezaCon(texto.replace(/\D/g, '')));
 
     const digitos = digitosDeTelefono(texto);
     if (digitos !== '') {
       alternativas.push(
         `EXISTS (SELECT 1 FROM telefonos t WHERE t.contacto_id = c.id AND t.numero LIKE ? ESCAPE '\\')`,
       );
-      parametros.push(contiene(digitos));
+      parametros.push(empiezaCon(digitos));
     }
   }
 
+  // Lo escrito no sirve para ningún dato (por ejemplo, solo un guion): ningún contacto coincide.
+  if (alternativas.length === 0) {
+    return { sql: '0', parametros: [] };
+  }
   return { sql: alternativas.map((alternativa) => `(${alternativa})`).join(' OR '), parametros };
 }
 

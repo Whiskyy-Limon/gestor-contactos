@@ -371,6 +371,25 @@ a.boton {
   color: var(--color-tenue);
 }
 
+/* Mientras llega una búsqueda en vivo, la lista anterior se atenúa. */
+.resultados[aria-busy="true"] {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+/* Texto solo para lectores de pantalla (por ejemplo, el anuncio de resultados). */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .tabla-contenedor {
   overflow-x: auto;
 }

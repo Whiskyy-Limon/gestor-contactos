@@ -1,21 +1,22 @@
 <%- include('../partials/cabecera') %>
 <section class="tarjeta tarjeta--listado">
   <div class="encabezado">
-    <h1><%= titulo %></h1>
+    <h1 data-titulo-listado><%= titulo %></h1>
     <a href="/contactos/nuevo" class="boton">Nuevo contacto</a>
   </div>
 
-  <%# B1: búsqueda y filtros. Es un formulario GET: funciona sin JavaScript y el resultado tiene su
-      propia dirección (se puede recargar o guardar como marcador). -%>
-  <form method="get" action="/contactos" class="filtros" role="search">
+  <%# B1: búsqueda y filtros. Es un formulario GET: sin JavaScript funciona con el botón "Buscar" o
+      con Enter. public/js/busqueda.js oculta el botón y actualiza los resultados mientras se escribe
+      (data-busqueda-en-vivo indica el id del contenedor de resultados). -%>
+  <form method="get" action="/contactos" class="filtros" role="search" data-busqueda-en-vivo="resultados">
     <div class="campo filtros__busqueda">
       <label for="q">Buscar</label>
       <input id="q" name="q" type="search" value="<%= filtros.q %>" maxlength="<%= maximoBusqueda %>"
-        placeholder="Nombre, DNI, teléfono o correo">
+        placeholder="Nombre, DNI, teléfono o correo" autocomplete="off" aria-controls="resultados">
     </div>
     <div class="campo">
       <label for="tipo">Tipo</label>
-      <select id="tipo" name="tipo">
+      <select id="tipo" name="tipo" aria-controls="resultados">
         <option value="">Todos</option>
         <option value="cliente"<%= filtros.tipo === 'cliente' ? ' selected' : '' %>>Clientes</option>
         <option value="proveedor"<%= filtros.tipo === 'proveedor' ? ' selected' : '' %>>Proveedores</option>
@@ -23,74 +24,24 @@
     </div>
     <div class="campo">
       <label for="estado">Estado</label>
-      <select id="estado" name="estado">
+      <select id="estado" name="estado" aria-controls="resultados">
         <option value="activos">Activos</option>
         <option value="archivados"<%= filtros.estado === 'archivados' ? ' selected' : '' %>>Archivados</option>
       </select>
     </div>
     <div class="filtros__acciones">
-      <button type="submit" class="boton">Buscar</button>
-      <% if (hayFiltros || filtros.estado !== 'activos') { %>
-        <a href="/contactos" class="boton boton--secundario">Limpiar</a>
-      <% } %>
+      <button type="submit" class="boton" data-boton-buscar>Buscar</button>
     </div>
   </form>
 
-  <% if (resultado.total === 0) { %>
-    <p class="vacio">
-      <% if (hayFiltros) { %>
-        No se encontraron contactos con esa búsqueda.
-      <% } else if (filtros.estado === 'archivados') { %>
-        No hay contactos archivados.
-      <% } else { %>
-        Todavía no hay contactos. <a href="/contactos/nuevo">Crea el primero</a>.
-      <% } %>
-    </p>
-  <% } else { %>
-    <p class="resumen">Mostrando <%= resultado.desde %>–<%= resultado.hasta %> de <%= resultado.total %></p>
+  <%# Anuncia la cantidad de resultados después de cada búsqueda en vivo. Está fuera de #resultados
+      porque ese contenido se reemplaza, y una región que se reemplaza puede no anunciarse. Empieza
+      vacía: al cargar la página no se anuncia nada. -%>
+  <p class="visualmente-oculto" role="status" aria-live="polite" data-anuncio-busqueda></p>
 
-    <div class="tabla-contenedor">
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th scope="col">Nombre</th>
-            <th scope="col">DNI</th>
-            <th scope="col">Teléfono</th>
-            <th scope="col">Correo</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% for (const contacto of resultado.contactos) { %>
-            <tr>
-              <td>
-                <div class="tabla__nombre">
-                  <%- include('../partials/avatar', { contacto, chico: true }) %>
-                  <div>
-                    <a href="/contactos/<%= contacto.id %>"><%= contacto.apellidos %>, <%= contacto.nombres %></a>
-                    <span class="tabla__tipo tenue"><%= nombreDeTipo(contacto.tipo) %></span>
-                  </div>
-                </div>
-              </td>
-              <td><%= contacto.dni %></td>
-              <td><%= contacto.telefono ? formatearTelefono(contacto.telefono.numero, contacto.telefono.tipo) : '' %></td>
-              <td><%= contacto.correo ?? '' %></td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
-
-    <% if (resultado.paginas > 1) { %>
-      <nav class="paginacion" aria-label="Páginas">
-        <% if (resultado.pagina > 1) { %>
-          <a href="<%= enlace({ pagina: resultado.pagina - 1 }) %>" rel="prev">« Anterior</a>
-        <% } %>
-        <span>Página <%= resultado.pagina %> de <%= resultado.paginas %></span>
-        <% if (resultado.pagina < resultado.paginas) { %>
-          <a href="<%= enlace({ pagina: resultado.pagina + 1 }) %>" rel="next">Siguiente »</a>
-        <% } %>
-      </nav>
-    <% } %>
-  <% } %>
+  <div id="resultados" class="resultados">
+    <%- include('resultados') %>
+  </div>
 </section>
+<script type="module" src="/js/busqueda.js"></script>
 <%- include('../partials/pie') %>

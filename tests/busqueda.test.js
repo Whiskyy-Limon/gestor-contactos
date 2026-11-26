@@ -102,35 +102,72 @@ describe('listado y búsqueda de contactos (B1–B3)', () => {
       assert.deepEqual(buscar('muñoz'), ['Álvarez Muñoz']);
     });
 
-    it('encuentra una parte del nombre', () => {
+    it('encuentra el comienzo de un nombre o apellido, pero no una parte del medio', () => {
       assert.deepEqual(buscar('lop'), ['López']);
+      assert.deepEqual(buscar('l'), ['López']);
+      assert.deepEqual(buscar('pez'), []);
+      assert.deepEqual(buscar('aria'), []);
     });
 
-    it('con varias palabras, cada una debe aparecer, en cualquier orden', () => {
+    it('con varias palabras, cada una debe ser el comienzo de una palabra, en cualquier orden', () => {
       assert.deepEqual(buscar('perez jose'), ['Pérez']);
-      assert.deepEqual(buscar('jose   perez'), ['Pérez']);
+      assert.deepEqual(buscar('jose   pe'), ['Pérez']);
+      assert.deepEqual(buscar('jo pe'), ['Pérez']);
       assert.deepEqual(buscar('jose lopez'), []);
     });
   });
 
+  describe('"empieza con" en nombres y apellidos (B2)', () => {
+    it('"ho" encuentra a Hortensia y a "de la Hoz", pero no a Ochoa ni a Rocha', () => {
+      nuevo({ nombres: 'Hortensia', apellidos: 'Quispe' });
+      nuevo({ nombres: 'Luis', apellidos: 'de la Hoz' });
+      nuevo({ nombres: 'Ana', apellidos: 'Ochoa' });
+      nuevo({ nombres: 'Rosa', apellidos: 'Rocha' });
+
+      assert.deepEqual(apellidos({ q: 'ho' }), ['de la Hoz', 'Quispe']);
+      assert.deepEqual(apellidos({ q: 'H' }), ['de la Hoz', 'Quispe']);
+    });
+
+    it('el guion y el apóstrofo separan palabras', () => {
+      const rivasPlata = nuevo({ apellidos: 'Rivas-Plata' });
+      const obrien = nuevo({ apellidos: "O'Brien" });
+
+      for (const q of ['plata', 'rivas-plata', 'Rivas Plata', 'pla']) {
+        assert.deepEqual(ids({ q }), [rivasPlata], q);
+      }
+      for (const q of ['brien', "o'brien", 'O’Brien']) {
+        assert.deepEqual(ids({ q }), [obrien], q);
+      }
+      assert.deepEqual(ids({ q: 'ivas' }), []);
+    });
+
+    it('lo que no sirve para buscar ningún dato (solo un guion) no encuentra a nadie', () => {
+      nuevo();
+
+      assert.deepEqual(ids({ q: '-' }), []);
+      assert.deepEqual(ids({ q: "'" }), []);
+    });
+  });
+
   describe('búsqueda por DNI, teléfono y correo (B1)', () => {
-    it('encuentra una parte del DNI, con los ceros a la izquierda', () => {
+    it('encuentra el comienzo del DNI, con los ceros a la izquierda, pero no una parte del medio', () => {
       const conCero = nuevo({ dni: '01234567' });
       nuevo({ dni: '76543210' });
 
       assert.deepEqual(ids({ q: '0123' }), [conCero]);
-      assert.deepEqual(ids({ q: '4567' }), [conCero]);
+      assert.deepEqual(ids({ q: '01234567' }), [conCero]);
+      assert.deepEqual(ids({ q: '4567' }), []);
     });
 
-    it('encuentra un teléfono escrito de cualquier forma', () => {
+    it('encuentra el comienzo de un teléfono escrito de cualquier forma', () => {
       const celular = nuevo({ telefonos: ['987654321'] });
       const provincia = nuevo({ telefonos: ['44123456'] });
       const lima = nuevo({ telefonos: ['012345678'] });
 
-      for (const q of ['987654321', '987 654 321', '+51 987 654 321', '(+51) 987-654-321', '654 32']) {
+      for (const q of ['987654321', '987 654 321', '+51 987 654 321', '(+51) 987-654-321', '987 65', '+51 98']) {
         assert.deepEqual(ids({ q }), [celular], q);
       }
-      for (const q of ['(044) 123456', '044 123', '44 1234']) {
+      for (const q of ['(044) 123456', '044 123', '44 1234', '(044']) {
         assert.deepEqual(ids({ q }), [provincia], q);
       }
       for (const q of ['(01) 234 5678', '01 234']) {
@@ -138,21 +175,46 @@ describe('listado y búsqueda de contactos (B1–B3)', () => {
       }
     });
 
-    it('encuentra una parte del correo, sin distinguir mayúsculas', () => {
+    it('no encuentra una parte del medio del teléfono: hay que escribirlo desde el comienzo', () => {
+      nuevo({ telefonos: ['987654321'] });
+      nuevo({ telefonos: ['44123456'] });
+      nuevo({ telefonos: ['012345678'] });
+
+      for (const q of ['654 32', '123456', '234 5678']) {
+        assert.deepEqual(ids({ q }), [], q);
+      }
+    });
+
+    it('encuentra cualquier parte del correo, sin distinguir mayúsculas', () => {
       const ventas = nuevo({ correos: ['ventas@proveedor.com.pe'] });
       nuevo({ correos: ['ana@empresa.pe'] });
 
       assert.deepEqual(ids({ q: 'ventas@' }), [ventas]);
       assert.deepEqual(ids({ q: 'PROVEEDOR.COM' }), [ventas]);
+      assert.deepEqual(ids({ q: 'oveedor' }), [ventas]);
+    });
+
+    it('el correo se busca recién desde 3 caracteres', () => {
+      const hotmail = nuevo({ nombres: 'Ana', apellidos: 'Pérez', correos: ['ventas@hotmail.com'] });
+      const hugo = nuevo({ nombres: 'Hugo', apellidos: 'Díaz', correos: ['hugo@empresa.pe'] });
+
+      // "h" y "ho": solo los nombres que empiezan así, aunque el otro correo tenga "h" y "ho".
+      assert.deepEqual(ids({ q: 'h' }), [hugo]);
+      assert.deepEqual(ids({ q: 'ho' }), []);
+      // "hot": ya busca en los correos.
+      assert.deepEqual(ids({ q: 'hot' }), [hotmail]);
     });
 
     it('% y _ se buscan como texto, no como comodines', () => {
-      const conGuion = nuevo({ correos: ['ana_maria@empresa.pe'] });
-      nuevo({ correos: ['anaxmaria@empresa.pe'] });
+      const conGuion = nuevo({ nombres: 'Ana', correos: ['ana_maria@empresa.pe'] });
+      nuevo({ nombres: 'Ana', correos: ['anaxmaria@empresa.pe'] });
 
       assert.deepEqual(ids({ q: 'ana_maria' }), [conGuion]);
+      assert.deepEqual(ids({ q: 'a_m' }), [conGuion]);
+      // Como comodín, "_na" encontraría a "Ana" por el nombre.
+      assert.deepEqual(ids({ q: '_na' }), []);
       assert.deepEqual(ids({ q: '%' }), []);
-      assert.deepEqual(ids({ q: '_' }), [conGuion]);
+      assert.deepEqual(ids({ q: '%na' }), []);
       assert.deepEqual(ids({ q: '\\' }), []);
     });
 

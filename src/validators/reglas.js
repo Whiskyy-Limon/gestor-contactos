@@ -30,6 +30,10 @@ export const CONTACTOS_POR_PAGINA = 20;
 export const MAXIMO_CARACTERES_BUSQUEDA = 100;
 export const MAXIMO_PALABRAS_BUSQUEDA = 5;
 
+// B1: el correo se busca por "contiene" solo desde esta cantidad de caracteres (con menos, casi
+// todos los correos coincidirían).
+export const MINIMO_CARACTERES_BUSQUEDA_CORREO = 3;
+
 // T4: códigos de área de la telefonía fija de provincia (Perú), uno por departamento.
 export const CODIGOS_AREA_PROVINCIA = Object.freeze([
   '41', '42', '43', '44',

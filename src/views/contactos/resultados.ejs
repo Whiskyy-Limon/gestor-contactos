@@ -1,0 +1,67 @@
+<%#
+  Resultados del listado (B1–B3): resumen, tabla, paginación o el mensaje de "sin resultados".
+  Se usa dentro de la página completa (listado.ejs) y solo, como fragmento, en /contactos/resultados
+  para la búsqueda en vivo (public/js/busqueda.js), así ambos muestran exactamente el mismo HTML.
+  El elemento raíz lleva lo que el navegador necesita después de una búsqueda en vivo:
+    data-url      dirección canónica de esta búsqueda (para la barra de direcciones)
+    data-titulo   título de la página ("Contactos" o "Contactos archivados")
+    data-anuncio  texto para lectores de pantalla ("3 contactos encontrados.")
+-%>
+<div class="resultados__contenido" data-url="<%= urlActual %>" data-titulo="<%= titulo %>" data-anuncio="<%= anuncio %>">
+  <% if (resultado.total === 0) { %>
+    <p class="vacio">
+      <% if (hayFiltros) { %>
+        No se encontraron contactos con esa búsqueda.
+      <% } else if (filtros.estado === 'archivados') { %>
+        No hay contactos archivados.
+      <% } else { %>
+        Todavía no hay contactos. <a href="/contactos/nuevo">Crea el primero</a>.
+      <% } %>
+    </p>
+  <% } else { %>
+    <p class="resumen">Mostrando <%= resultado.desde %>–<%= resultado.hasta %> de <%= resultado.total %></p>
+
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">DNI</th>
+            <th scope="col">Teléfono</th>
+            <th scope="col">Correo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const contacto of resultado.contactos) { %>
+            <tr>
+              <td>
+                <div class="tabla__nombre">
+                  <%- include('../partials/avatar', { contacto, chico: true }) %>
+                  <div>
+                    <a href="/contactos/<%= contacto.id %>"><%= contacto.apellidos %>, <%= contacto.nombres %></a>
+                    <span class="tabla__tipo tenue"><%= nombreDeTipo(contacto.tipo) %></span>
+                  </div>
+                </div>
+              </td>
+              <td><%= contacto.dni %></td>
+              <td><%= contacto.telefono ? formatearTelefono(contacto.telefono.numero, contacto.telefono.tipo) : '' %></td>
+              <td><%= contacto.correo ?? '' %></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (resultado.paginas > 1) { %>
+      <nav class="paginacion" aria-label="Páginas">
+        <% if (resultado.pagina > 1) { %>
+          <a href="<%= enlace({ pagina: resultado.pagina - 1 }) %>" rel="prev">« Anterior</a>
+        <% } %>
+        <span>Página <%= resultado.pagina %> de <%= resultado.paginas %></span>
+        <% if (resultado.pagina < resultado.paginas) { %>
+          <a href="<%= enlace({ pagina: resultado.pagina + 1 }) %>" rel="next">Siguiente »</a>
+        <% } %>
+      </nav>
+    <% } %>
+  <% } %>
+</div>

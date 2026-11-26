@@ -82,11 +82,18 @@ describe('página del listado de contactos', () => {
   it('muestra lo buscado y los filtros elegidos en el formulario', async () => {
     const html = (await agente.get('/contactos?q=perez&tipo=proveedor&estado=archivados')).text;
 
-    assert.match(html, /<h1>Contactos archivados<\/h1>/);
+    assert.match(html, /<h1 data-titulo-listado>Contactos archivados<\/h1>/);
     assert.match(html, /id="q" name="q" type="search" value="perez"/);
     assert.match(html, /<option value="proveedor" selected>Proveedores<\/option>/);
     assert.match(html, /<option value="archivados" selected>Archivados<\/option>/);
-    assert.match(html, /<a href="\/contactos" class="boton boton--secundario">Limpiar<\/a>/);
+  });
+
+  it('sin JavaScript se busca con el botón "Buscar"; ya no hay "Limpiar"', async () => {
+    const html = (await agente.get('/contactos?q=perez')).text;
+
+    assert.match(html, /<form method="get" action="\/contactos"[^>]*data-busqueda-en-vivo="resultados">/);
+    assert.match(html, /<button type="submit" class="boton" data-boton-buscar>Buscar<\/button>/);
+    assert.doesNotMatch(html, /Limpiar/);
   });
 
   it('sin resultados, lo dice', async () => {
@@ -111,7 +118,7 @@ describe('página del listado de contactos', () => {
     for (const consulta of ['tipo=otro&estado=raro&pagina=abc', 'pagina=-3', 'pagina=0', 'q=a&q=b', 'tipo[]=cliente']) {
       const respuesta = await agente.get(`/contactos?${consulta}`);
       assert.equal(respuesta.status, 200, consulta);
-      assert.match(respuesta.text, /<h1>Contactos<\/h1>/, consulta);
+      assert.match(respuesta.text, /<h1 data-titulo-listado>Contactos<\/h1>/, consulta);
       assert.ok(respuesta.text.includes('Pérez') || respuesta.text.includes('Activo'), consulta);
     }
   });
@@ -121,6 +128,83 @@ describe('página del listado de contactos', () => {
 
     assert.ok(html.includes(`value="${'a'.repeat(100)}"`));
     assert.ok(!html.includes('a'.repeat(101)));
+  });
+
+  describe('búsqueda en vivo: fragmento de resultados', () => {
+    // Atributos data-* del elemento raíz del fragmento.
+    function datosDelFragmento(html) {
+      const raiz = html.match(/<div class="resultados__contenido" ([^>]*)>/)[1];
+      return Object.fromEntries([...raiz.matchAll(/data-(\w+)="([^"]*)"/g)].map(([, nombre, valor]) => [nombre, valor]));
+    }
+
+    it('devuelve solo los resultados, sin la página alrededor', async () => {
+      const id = nuevo({ nombres: 'Hortensia', apellidos: 'Quispe' });
+      nuevo({ nombres: 'Ana', apellidos: 'Ochoa' });
+
+      const respuesta = await agente.get('/contactos/resultados?q=ho');
+
+      assert.equal(respuesta.status, 200);
+      assert.match(respuesta.headers['content-type'], /^text\/html/);
+      assert.match(respuesta.text, /^<div class="resultados__contenido"/);
+      assert.doesNotMatch(respuesta.text, /<html|<header|<form|<script/);
+      assert.ok(respuesta.text.includes(`<a href="/contactos/${id}">Quispe, Hortensia</a>`));
+      assert.ok(!respuesta.text.includes('Ochoa'));
+    });
+
+    it('es el mismo HTML que la página completa muestra en #resultados', async () => {
+      nuevo({ nombres: 'Hortensia', apellidos: 'Quispe' });
+
+      const fragmento = (await agente.get('/contactos/resultados?q=ho&tipo=cliente')).text;
+      const pagina = (await agente.get('/contactos?q=ho&tipo=cliente')).text;
+
+      assert.ok(pagina.includes(fragmento.trim()));
+    });
+
+    it('trae la dirección canónica, el título y el anuncio para lectores de pantalla', async () => {
+      nuevo({ nombres: 'Hortensia', apellidos: 'Quispe' });
+      nuevo({ nombres: 'Hugo', apellidos: 'Díaz' });
+
+      assert.deepEqual(datosDelFragmento((await agente.get('/contactos/resultados?q=h&tipo=&estado=activos')).text), {
+        url: '/contactos?q=h',
+        titulo: 'Contactos',
+        anuncio: '2 contactos encontrados.',
+      });
+      assert.deepEqual(datosDelFragmento((await agente.get('/contactos/resultados?q=hor')).text).anuncio, '1 contacto encontrado.');
+      assert.deepEqual(datosDelFragmento((await agente.get('/contactos/resultados?q=xyz&estado=archivados')).text), {
+        url: '/contactos?q=xyz&amp;estado=archivados',
+        titulo: 'Contactos archivados',
+        anuncio: 'No se encontraron contactos.',
+      });
+    });
+
+    it('escapa lo buscado y los datos de los contactos', async () => {
+      const id = nuevo({ nombres: 'Ana', apellidos: 'Pérez' });
+      entorno.db.prepare('UPDATE contactos SET nombres = ? WHERE id = ?').run('<b>Ana</b>', id);
+
+      const html = (await agente.get(`/contactos/resultados?q=${encodeURIComponent('"><script>x</script>')}`)).text;
+      const conDatos = (await agente.get('/contactos/resultados')).text;
+
+      assert.doesNotMatch(html, /<script|"><|<\/script>/);
+      assert.ok(conDatos.includes('Pérez, &lt;b&gt;Ana&lt;/b&gt;'));
+      assert.doesNotMatch(conDatos, /<b>Ana/);
+    });
+
+    it('sin sesión redirige al login, y con sesión no se guarda en caché', async () => {
+      const sinSesion = await request(entorno.app).get('/contactos/resultados?q=a');
+      assert.equal(sinSesion.status, 302);
+      assert.equal(sinSesion.headers.location, '/login');
+
+      const conSesion = await agente.get('/contactos/resultados?q=a');
+      assert.equal(conSesion.headers['cache-control'], 'no-store');
+    });
+
+    it('la página completa tiene la región que anuncia los resultados, vacía, y el script', async () => {
+      const html = (await agente.get('/contactos')).text;
+
+      assert.match(html, /<p class="visualmente-oculto" role="status" aria-live="polite" data-anuncio-busqueda><\/p>/);
+      assert.match(html, /<div id="resultados" class="resultados">\s*<div class="resultados__contenido"/);
+      assert.match(html, /<script type="module" src="\/js\/busqueda\.js"><\/script>/);
+    });
   });
 
   describe('enlaces de paginación (B3)', () => {
