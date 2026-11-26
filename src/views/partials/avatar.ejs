@@ -1,5 +1,6 @@
 <%#
-  C4: avatar con las iniciales del contacto. Recibe `contacto`: { id, nombres, apellidos }.
+  C4: avatar con las iniciales del contacto. Recibe `contacto`: { id, nombres, apellidos } y,
+  opcionalmente, `chico: true` (para el listado).
   Es decorativo (aria-hidden): el nombre completo siempre está escrito al lado.
 -%>
-<span class="avatar <%= colorDeAvatar(contacto.id) %>" aria-hidden="true"><%= iniciales(contacto.nombres, contacto.apellidos) %></span>
+<span class="avatar <%= colorDeAvatar(contacto.id) %><%= locals.chico ? ' avatar--chico' : '' %>" aria-hidden="true"><%= iniciales(contacto.nombres, contacto.apellidos) %></span>

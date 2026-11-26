@@ -58,8 +58,8 @@ describe('seguridad', () => {
       assert.match(tokenCsrf(formulario.text), /^[0-9a-f]{64}$/);
 
       await agente.post('/login').type('form').send({ correo: CORREO, password: PASSWORD, _csrf: tokenCsrf(formulario.text) });
-      const inicio = await agente.get('/');
-      assert.match(tokenCsrf(inicio.text), /^[0-9a-f]{64}$/);
+      const listado = await agente.get('/contactos');
+      assert.match(tokenCsrf(listado.text), /^[0-9a-f]{64}$/);
     });
 
     it('POST /login sin token responde 403 y no inicia sesión', async () => {
@@ -106,7 +106,7 @@ describe('seguridad', () => {
       const respuesta = await agente.post('/logout');
 
       assert.equal(respuesta.status, 403);
-      assert.equal((await agente.get('/')).status, 200);
+      assert.equal((await agente.get('/contactos')).status, 200);
       assert.equal(contarSesiones(entorno.db), 1);
     });
 
@@ -119,7 +119,7 @@ describe('seguridad', () => {
     it('acepta el token en la cabecera X-CSRF-Token', async () => {
       const agente = request.agent(entorno.app);
       await iniciarSesion(agente);
-      const token = tokenCsrf((await agente.get('/')).text);
+      const token = tokenCsrf((await agente.get('/contactos')).text);
 
       const respuesta = await agente.post('/logout').set('X-CSRF-Token', token);
 
@@ -132,7 +132,7 @@ describe('seguridad', () => {
       const tokenAnonimo = tokenCsrf(formulario.text);
       await agente.post('/login').type('form').send({ correo: CORREO, password: PASSWORD, _csrf: tokenAnonimo });
 
-      const tokenConSesion = tokenCsrf((await agente.get('/')).text);
+      const tokenConSesion = tokenCsrf((await agente.get('/contactos')).text);
 
       assert.notEqual(tokenConSesion, tokenAnonimo);
     });
@@ -281,7 +281,7 @@ describe('seguridad', () => {
       assert.equal((await agente.get('/login')).headers['cache-control'], 'no-store');
 
       await iniciarSesion(agente);
-      for (const ruta of ['/', '/contactos/nuevo', '/no-existe']) {
+      for (const ruta of ['/', '/contactos', '/contactos/nuevo', '/no-existe']) {
         assert.equal((await agente.get(ruta)).headers['cache-control'], 'no-store', ruta);
       }
     });

@@ -1,7 +1,26 @@
 import { Router } from 'express';
+import { listarContactos } from '../services/busqueda.js';
 import { buscarContacto, crearContacto } from '../services/contactos.js';
-import { MAXIMO_CORREOS_POR_CONTACTO, MAXIMO_TELEFONOS_POR_CONTACTO, TIPOS_CONTACTO } from '../validators/reglas.js';
+import { esquemaFiltrosListado } from '../validators/contactos.js';
+import {
+  MAXIMO_CARACTERES_BUSQUEDA,
+  MAXIMO_CORREOS_POR_CONTACTO,
+  MAXIMO_TELEFONOS_POR_CONTACTO,
+  TIPOS_CONTACTO,
+} from '../validators/reglas.js';
 import { ErrorDeValidacion, erroresPorCampo } from '../validators/validar.js';
+
+// B3: dirección del listado con estos filtros. Omite los valores por defecto, así la dirección
+// queda corta: /contactos, /contactos?q=perez&pagina=2.
+function urlDelListado({ q, tipo, estado, pagina }) {
+  const parametros = new URLSearchParams();
+  if (q) parametros.set('q', q);
+  if (tipo) parametros.set('tipo', tipo);
+  if (estado !== 'activos') parametros.set('estado', estado);
+  if (pagina > 1) parametros.set('pagina', String(pagina));
+  const consulta = parametros.toString();
+  return consulta ? `/contactos?${consulta}` : '/contactos';
+}
 
 // Id de la URL → entero positivo, o null si no tiene esa forma (y la ruta responde 404).
 function leerId(texto) {
@@ -46,6 +65,23 @@ function mostrarFormulario(res, { estado = 200, valores, errores = {}, dniRepeti
 // Rutas de contactos (todas requieren sesión: se registran después de requiereSesion).
 export function crearRutasContactos(db) {
   const router = Router();
+
+  // B1–B3: listado con búsqueda, filtros y paginación.
+  router.get('/contactos', (req, res) => {
+    const filtros = esquemaFiltrosListado.parse(req.query);
+    const resultado = listarContactos(db, filtros);
+    const actuales = { ...filtros, pagina: resultado.pagina };
+
+    res.render('contactos/listado', {
+      titulo: filtros.estado === 'archivados' ? 'Contactos archivados' : 'Contactos',
+      filtros: actuales,
+      resultado,
+      maximoBusqueda: MAXIMO_CARACTERES_BUSQUEDA,
+      hayFiltros: filtros.q !== '' || filtros.tipo !== '',
+      // Enlace a otra página conservando la búsqueda y los filtros (B3).
+      enlace: (cambios) => urlDelListado({ ...actuales, ...cambios }),
+    });
+  });
 
   router.get('/contactos/nuevo', (req, res) => {
     mostrarFormulario(res, { valores: valoresDelFormulario() });

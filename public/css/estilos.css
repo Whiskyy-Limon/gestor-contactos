@@ -50,6 +50,8 @@ body {
 }
 
 .barra__nav {
+  display: flex;
+  gap: 1rem;
   margin-right: auto;
 }
 
@@ -306,6 +308,108 @@ a.boton {
   font-weight: 600;
   color: #ffffff;
   border-radius: 50%;
+}
+
+.avatar--chico {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.85rem;
+}
+
+/* Listado de contactos */
+
+.tarjeta--listado {
+  max-width: none;
+}
+
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.tarjeta .encabezado h1 {
+  margin: 0;
+}
+
+.volver {
+  max-width: 720px;
+  margin: 0 auto 0.75rem;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filtros__busqueda {
+  flex: 1 1 16rem;
+}
+
+.filtros input,
+.filtros select {
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.filtros__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.resumen,
+.vacio {
+  color: var(--color-tenue);
+}
+
+.tabla-contenedor {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla th {
+  font-size: 0.85rem;
+  color: var(--color-tenue);
+}
+
+.tabla__nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tabla__tipo {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
 }
 
 .avatar--0 { background: #1a56db; }

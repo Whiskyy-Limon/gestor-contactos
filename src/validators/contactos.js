@@ -3,6 +3,7 @@ import { esquemaCorreo } from './correo.js';
 import {
   LARGO_DNI,
   LETRAS_NO_ASCII_NOMBRE,
+  MAXIMO_CARACTERES_BUSQUEDA,
   MAXIMO_CARACTERES_NOMBRE,
   MAXIMO_CORREOS_POR_CONTACTO,
   MAXIMO_TELEFONOS_POR_CONTACTO,
@@ -138,4 +139,17 @@ export const esquemaContacto = z.object({
   tipo,
   telefonos,
   correos,
+});
+
+// B1–B3: parámetros del listado (/contactos?q=&tipo=&estado=&pagina=). Son parte de un enlace que
+// cualquiera puede editar a mano: un valor ausente o inválido toma el valor por defecto en vez de
+// dar error. tipo '' = todos.
+export const esquemaFiltrosListado = z.object({
+  q: z
+    .string()
+    .catch('')
+    .transform((texto) => texto.trim().slice(0, MAXIMO_CARACTERES_BUSQUEDA)),
+  tipo: z.enum(['', 'cliente', 'proveedor']).catch(''),
+  estado: z.enum(['activos', 'archivados']).catch('activos'),
+  pagina: z.coerce.number().int().min(1).catch(1),
 });

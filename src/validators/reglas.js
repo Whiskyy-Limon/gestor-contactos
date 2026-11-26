@@ -23,6 +23,13 @@ export const LETRAS_NO_ASCII_NOMBRE = 'áéíóúüñÁÉÍÓÚÜÑ';
 // C6: tipos de contacto.
 export const TIPOS_CONTACTO = Object.freeze(['cliente', 'proveedor', 'ambos']);
 
+// B3: contactos por página del listado.
+export const CONTACTOS_POR_PAGINA = 20;
+
+// B1, B2: límites de lo que se escribe en el buscador, para acotar la consulta.
+export const MAXIMO_CARACTERES_BUSQUEDA = 100;
+export const MAXIMO_PALABRAS_BUSQUEDA = 5;
+
 // T4: códigos de área de la telefonía fija de provincia (Perú), uno por departamento.
 export const CODIGOS_AREA_PROVINCIA = Object.freeze([
   '41', '42', '43', '44',

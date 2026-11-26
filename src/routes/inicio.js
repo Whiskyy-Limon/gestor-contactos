@@ -2,9 +2,9 @@ import { Router } from 'express';
 
 const router = Router();
 
-// Página de inicio (requiere sesión): saluda al usuario.
+// Página de inicio (requiere sesión): el listado de contactos.
 router.get('/', (req, res) => {
-  res.render('inicio', { titulo: 'Inicio' });
+  res.redirect(302, '/contactos');
 });
 
 export default router;

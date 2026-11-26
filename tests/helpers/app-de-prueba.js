@@ -71,9 +71,9 @@ export async function enviarFormulario(agente, { pagina, accion = pagina, datos 
     .send(codificarFormulario({ ...datos, _csrf: tokenCsrf(formulario.text) }));
 }
 
-// Cierra sesión como un navegador: toma el token del botón "Cerrar sesión" de la página de inicio.
+// Cierra sesión como un navegador: toma el token del botón "Cerrar sesión" del listado.
 export async function cerrarSesion(agente) {
-  const pagina = await agente.get('/');
+  const pagina = await agente.get('/contactos');
   return agente.post('/logout').type('form').send({ _csrf: tokenCsrf(pagina.text) });
 }
 

@@ -49,7 +49,7 @@ describe('autenticación', () => {
       assert.match(respuesta.text, /<form method="post" action="\/login"/);
     });
 
-    it('con datos correctos redirige al inicio, que saluda por nombre y ofrece cerrar sesión', async () => {
+    it('con datos correctos redirige al inicio, que lleva al listado con el nombre y el botón de cerrar sesión', async () => {
       const agente = request.agent(entorno.app);
 
       const login = await iniciarSesion(agente);
@@ -57,9 +57,13 @@ describe('autenticación', () => {
       assert.equal(login.headers.location, '/');
 
       const inicio = await agente.get('/');
-      assert.equal(inicio.status, 200);
-      assert.match(inicio.text, new RegExp(`Hola, ${NOMBRE}`));
-      assert.match(inicio.text, /<form method="post" action="\/logout"/);
+      assert.equal(inicio.status, 302);
+      assert.equal(inicio.headers.location, '/contactos');
+
+      const listado = await agente.get('/contactos');
+      assert.equal(listado.status, 200);
+      assert.match(listado.text, new RegExp(`<span class="barra__usuario">${NOMBRE}</span>`));
+      assert.match(listado.text, /<form method="post" action="\/logout"/);
     });
 
     it('acepta el correo con mayúsculas y espacios alrededor', async () => {
@@ -75,7 +79,7 @@ describe('autenticación', () => {
 
       assert.equal(login.status, 401);
       assert.equal(mensajeDeError(login.text), MENSAJE_GENERICO);
-      assert.equal((await agente.get('/')).status, 302);
+      assert.equal((await agente.get('/contactos')).status, 302);
     });
 
     it('con un correo inexistente responde exactamente igual que con una contraseña incorrecta', async () => {
@@ -186,7 +190,7 @@ describe('autenticación', () => {
       const cookie = await cookieConSesion();
 
       for (let i = 0; i < 2; i++) {
-        const respuesta = await request(entorno.app).get('/').set('Cookie', cookie);
+        const respuesta = await request(entorno.app).get('/contactos').set('Cookie', cookie);
         assert.equal(respuesta.status, 200);
       }
     });
@@ -195,17 +199,17 @@ describe('autenticación', () => {
       const cookie = await cookieConSesion();
       const appReiniciada = entorno.nuevaApp();
 
-      const respuesta = await request(appReiniciada).get('/').set('Cookie', cookie);
+      const respuesta = await request(appReiniciada).get('/contactos').set('Cookie', cookie);
 
       assert.equal(respuesta.status, 200);
-      assert.match(respuesta.text, new RegExp(`Hola, ${NOMBRE}`));
+      assert.match(respuesta.text, new RegExp(`<span class="barra__usuario">${NOMBRE}</span>`));
     });
 
     it('cada uso renueva el vencimiento por 30 días más (rolling)', async () => {
       const cookie = await cookieConSesion();
       entorno.db.prepare('UPDATE sesiones SET expira_en = ?').run(Date.now() + 60_000);
 
-      const respuesta = await request(entorno.app).get('/').set('Cookie', cookie);
+      const respuesta = await request(entorno.app).get('/contactos').set('Cookie', cookie);
 
       assert.equal(respuesta.status, 200);
       assert.ok(cookieDeSesion(respuesta), 'la respuesta debe renovar la cookie');
@@ -241,7 +245,7 @@ describe('autenticación', () => {
 
     it('después de cerrar sesión, la cookie vieja ya no sirve', async () => {
       const cookie = await cookieConSesion();
-      const pagina = await request(entorno.app).get('/').set('Cookie', cookie);
+      const pagina = await request(entorno.app).get('/contactos').set('Cookie', cookie);
       const logout = await request(entorno.app)
         .post('/logout')
         .set('Cookie', cookie)
