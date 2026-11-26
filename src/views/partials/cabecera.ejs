@@ -22,6 +22,9 @@
     <% } %>
   </header>
   <main class="contenido">
-    <% if (locals.aviso) { %>
+    <%# tomarAviso no existe si el error ocurrió antes de cargar la sesión (por ejemplo, un formulario
+        demasiado grande). -%>
+    <% const aviso = locals.tomarAviso ? tomarAviso() : null; %>
+    <% if (aviso) { %>
       <p class="aviso" role="status"><%= aviso %></p>
     <% } %>

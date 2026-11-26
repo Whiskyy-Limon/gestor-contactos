@@ -187,6 +187,17 @@ describe('contactos: crear y ver', () => {
       assert.ok(!otraVez.text.includes('Contacto creado.'));
     });
 
+    it('el aviso no se pierde si antes llegan una redirección o un fragmento de la búsqueda en vivo', async () => {
+      const respuesta = await enviarNuevo(DATOS);
+
+      // Peticiones que no dibujan la cabecera: no deben consumir el aviso.
+      assert.equal((await agente.get('/')).status, 302);
+      assert.ok(!(await agente.get('/contactos/resultados')).text.includes('Contacto creado.'));
+
+      const detalle = await agente.get(respuesta.headers.location);
+      assert.ok(detalle.text.includes('Contacto creado.'));
+    });
+
     it('con errores vuelve a mostrar el formulario con lo escrito y cada mensaje junto a su campo', async () => {
       const respuesta = await enviarNuevo({
         nombres: 'Ana2',
