@@ -66,3 +66,53 @@ Yo definí las reglas (foto opcional, archivar en vez de borrar, celulares y fij
 - `user:create` a mano: la contraseña no se ve al escribirla y con un argumento se niega.
 - En el navegador: error genérico (el mismo para un correo inexistente); la sesión sobrevive a recargar, a cerrar el navegador y a reiniciar el servidor; el logout la invalida; no hay errores de CSP en la consola; al sexto intento me bloquea.
 - 104 pruebas automáticas.
+
+## Etapa 4 — Contactos (26/11)
+
+**Decisiones mías:**
+- Tipo de contacto (cliente, proveedor o ambos), búsqueda sin tildes, auditoría de quién creó, editó y archivó, paginación de 20 y **sin roles** (lo dejé como mejora futura: preferí algo más pequeño y bien hecho).
+- **Búsqueda en vivo** (idea mía): me resultaba incómodo buscar y luego "Limpiar". Pedí que la lista se actualice mientras escribo y que busque por "empieza con", porque "contiene" con una sola letra trae casi todo.
+- Separar en dos commits la corrección de un error (los avisos de una sola vez) y la funcionalidad de editar, para que el historial muestre qué fue corrección y qué fue nuevo.
+
+**Propuestas del agente que acepté (y entendí):**
+- **Bloqueo optimista (C7):** si dos personas editan el mismo contacto, la segunda no sobrescribe sin aviso. Es justo la pérdida de datos del caso. Funciona con un número de versión y un `UPDATE ... WHERE version = ?`.
+- Migración con `ALTER TABLE` en vez de reconstruir la tabla, porque reconstruirla habría disparado el borrado en cascada de teléfonos y correos.
+- Columnas de búsqueda generadas por SQLite: nunca quedan desfasadas del nombre.
+- La foto en un formulario aparte, para no perder el archivo elegido si el formulario vuelve con errores.
+- En la búsqueda en vivo: correo desde 3 caracteres (si no, con "h" salen todos los @hotmail), y el guion y el apóstrofo como separadores (Rivas-Plata, O'Brien). También me avisó lo que se pierde: "4567" ya no encuentra el DNI 01234567.
+- CSRF en las fotos: la excepción se decide por una lista de rutas y no por tipo de contenido, para que un atacante no pueda saltarse la protección mandando un multipart a otra ruta.
+
+**Lo que encontraron las pruebas:**
+- **Código redundante:** al romper a propósito la revisión previa del DNI, ninguna prueba falló. El `UNIQUE` de la base ya lo cubría, así que se eliminó.
+- **Un error real:** el aviso "Contacto creado" se perdía si otra petición llegaba antes de mostrarlo. Lo corregimos con su prueba.
+- **Pruebas mal diseñadas:** una búsqueda de "a" encontraba a todos porque todos se llamaban "Ana", y en "Rosa María Medina" dos palabras empezaban con M. Una prueba mal diseñada da falsa confianza; se corrigieron.
+
+**Dependencias:** antes de instalar multer y sharp, el agente revisó quién los publica (GitHub Actions con publicación verificada), que el CHANGELOG estuviera completo y que no tuvieran scripts de instalación. Es lo que aprendí con EJS, convertido en procedimiento.
+
+**Cómo verifiqué en el navegador:**
+- Crear contacto, errores junto a cada campo, DNI repetido con enlace y caché después de cerrar sesión.
+- Búsqueda: probé `' OR 1=1 --` (sin resultados) y `<script>alert(1)</script>` (se ve escapado y no se ejecuta). En la pestaña Network comprobé que escribir rápido hace una sola petición.
+- **Edición simultánea en dos pestañas:** apareció el aviso de conflicto con mi nombre y la hora, y se conservó lo que escribí.
+- Archivar, restaurar y "Restaurar ese contacto" con el DNI de un archivado.
+- Fotos: archivo falso, más de 2 MB, la ruta de la foto sin sesión y que al cambiarla quede un solo archivo.
+
+## Mejora visual (26/11)
+
+**Decisiones mías:** pedí mejorar el diseño, una foto estilo Discord (lápiz y menú al hacer clic), un botón luna/sol para el modo oscuro y una **confirmación al quitar la foto**, porque el agente la había dejado a un clic y borra el archivo para siempre. Elegí la paleta Índigo entre tres opciones. Acepté que **cambiar** la foto no pida confirmación, porque ya exige elegir un archivo.
+
+**Lo que aprendí:**
+- Todo con CSS propio, sin frameworks, porque la CSP solo permite archivos del propio servidor.
+- El contraste se **midió** en la página real (más de 1.000 textos, modos claro y oscuro), no a ojo.
+- Funciona con teclado, en celular (sin hover) y sin JavaScript.
+- Para evitar el parpadeo del tema, un script pequeño en el `<head>` aplica el modo antes de dibujar la página.
+- **Me equivoqué en una suposición:** creí que en un navegador viejo la app se vería "sin colores pero funcional". El agente lo probó y era inusable (campos sin borde, botones invisibles). Agregamos un respaldo en modo claro con una prueba que vigila que los colores coincidan.
+
+## Etapa 5 — Revisión final (27/11)
+
+- Pedí una **revisión de seguridad a una sesión nueva del agente**, sin el contexto del desarrollo, para que leyera el código como otra persona.
+- **Encontró un error en MI regla U5:** si alguien bloqueado seguía intentando, terminaba bloqueando a toda la oficina, justo lo que yo quería evitar. Ninguna prueba lo cubría.
+- Corregimos 5 hallazgos, cada uno en su commit y siempre en el mismo orden: **primero la prueba que falla, después la corrección**. Entre ellos: el límite de visitas al login, la validación de la configuración (`NODE_ENV=prod` dejaba la app insegura sin avisar), el error 400 en envíos de foto mal formados y que el servidor de desarrollo escuche solo en localhost (lo elegí yo).
+- Al probar `engine-strict`, la primera simulación del agente no funcionaba. No confió en ese resultado: lo probó de otra forma con mi Node real.
+- **Datos personales:** las capturas del README usan solo datos ficticios. Borré una captura que podía tener datos míos.
+- Dejé en "mejoras futuras" lo que no valía la pena hacer hoy, para entregar algo bien hecho y que pueda explicar.
+- **Permisos:** no fui constante con el modo de permisos: en varios momentos la sesión estuvo en automático o en "aceptar ediciones". Lo compensé revisando y probando el resultado de cada tanda antes de aprobar su commit.
