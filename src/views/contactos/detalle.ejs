@@ -15,7 +15,12 @@
   <% } %>
 
   <header class="ficha__cabecera">
-    <%- include('../partials/avatar', { contacto, grande: true }) %>
+    <%# C4: en un contacto activo, el avatar abre el menú de la foto; uno archivado no la cambia (C5). -%>
+    <% if (contacto.archivado) { %>
+      <%- include('../partials/avatar', { contacto, grande: true }) %>
+    <% } else { %>
+      <%- include('foto-menu') %>
+    <% } %>
     <div class="ficha__titulo">
       <h1 class="ficha__nombre"><%= contacto.nombres %> <%= contacto.apellidos %></h1>
       <p class="etiquetas">
@@ -32,30 +37,6 @@
       </div>
     <% } %>
   </header>
-
-  <% if (!contacto.archivado) { %>
-    <%# C4: la foto se cambia en un formulario aparte (multipart). Su token CSRF lo verifica la ruta
-        después de que multer lee el formulario (ver RUTAS_MULTIPART). -%>
-    <section class="ficha__seccion foto" aria-labelledby="titulo-foto">
-      <h2 id="titulo-foto" class="ficha__subtitulo">Foto</h2>
-      <% if (locals.errorFoto) { %>
-        <p class="alerta" role="alert" id="error-foto"><%= errorFoto %></p>
-      <% } %>
-      <form method="post" action="/contactos/<%= contacto.id %>/foto" enctype="multipart/form-data" class="foto__formulario">
-        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <label for="foto">Imagen JPG, PNG o WebP de hasta 2 MB</label>
-        <input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" required
-          <% if (locals.errorFoto) { %>aria-invalid="true" aria-describedby="error-foto"<% } %>>
-        <button type="submit" class="boton"><%= contacto.foto ? 'Cambiar foto' : 'Subir foto' %></button>
-      </form>
-      <% if (contacto.foto) { %>
-        <form method="post" action="/contactos/<%= contacto.id %>/foto/quitar" class="foto__quitar">
-          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <button type="submit" class="boton boton--secundario">Quitar foto</button>
-        </form>
-      <% } %>
-    </section>
-  <% } %>
 
   <section class="ficha__seccion" aria-labelledby="titulo-datos">
     <h2 id="titulo-datos" class="ficha__subtitulo">Datos de contacto</h2>
@@ -104,4 +85,7 @@
     </dl>
   </footer>
 </article>
+<% if (!contacto.archivado) { %>
+  <script type="module" src="/js/foto.js"></script>
+<% } %>
 <%- include('../partials/pie') %>

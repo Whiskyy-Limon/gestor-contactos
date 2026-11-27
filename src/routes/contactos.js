@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verificarCsrf } from '../middlewares/csrf.js';
-import { recibirFoto } from '../middlewares/subida-foto.js';
+import { MENSAJE_FOTO_PESADA, recibirFoto } from '../middlewares/subida-foto.js';
 import { listarContactos } from '../services/busqueda.js';
 import { ErrorDeFoto, cambiarFoto, quitarFoto } from '../services/fotos.js';
 import {
@@ -13,6 +13,7 @@ import {
 } from '../services/contactos.js';
 import { esquemaFiltrosListado } from '../validators/contactos.js';
 import {
+  MAXIMO_BYTES_FOTO,
   MAXIMO_CARACTERES_BUSQUEDA,
   MAXIMO_CORREOS_POR_CONTACTO,
   MAXIMO_TELEFONOS_POR_CONTACTO,
@@ -145,11 +146,15 @@ function datosDelError(error) {
 }
 
 // Detalle del contacto. `errorFoto`: mensaje junto al formulario de la foto (F1–F4).
+// El peso máximo y su mensaje van a la página para que el navegador avise antes de enviar (F1);
+// el servidor lo vuelve a verificar igual.
 function mostrarDetalle(res, contacto, { estado = 200, errorFoto = null } = {}) {
   res.status(estado).render('contactos/detalle', {
     titulo: `${contacto.nombres} ${contacto.apellidos}`,
     contacto,
     errorFoto,
+    maximoBytesFoto: MAXIMO_BYTES_FOTO,
+    mensajeFotoPesada: MENSAJE_FOTO_PESADA,
   });
 }
 

@@ -1,0 +1,45 @@
+<%#
+  C4, F1–F4: la foto de un contacto activo, en la ficha. El avatar es el botón (<summary>) de un
+  <details>: al pasar el mouse o con el foco se oscurece y muestra un lápiz; al hacer clic abre un
+  menú con "Cambiar foto" y, si tiene foto, "Quitar foto".
+  Sin JavaScript funciona igual: el menú muestra el campo del archivo y el botón para enviarlo
+  (data-foto-sin-js). Con JavaScript (public/js/foto.js) esos se ocultan, se muestran los
+  elementos data-foto-con-js, y "Cambiar foto" abre el selector y envía apenas se elige un archivo.
+  Si el envío anterior falló (errorFoto), el menú viene abierto con el mensaje.
+  El formulario es multipart: su token CSRF va antes del archivo y lo verifica la ruta después de
+  multer (ver RUTAS_MULTIPART).
+-%>
+<% const tieneFoto = Boolean(contacto.foto); %>
+<% const megas = maximoBytesFoto / 1024 / 1024; %>
+<details class="foto-menu" data-foto-menu data-maximo-bytes="<%= maximoBytesFoto %>" data-mensaje-peso="<%= mensajeFotoPesada %>"<% if (locals.errorFoto) { %> open<% } %>>
+  <summary class="foto-menu__boton">
+    <%- include('../partials/avatar', { contacto, grande: true }) %>
+    <span class="foto-menu__capa" aria-hidden="true"><%- include('../partials/icono', { icono: 'lapiz', clase: 'foto-menu__lapiz' }) %></span>
+    <span class="foto-menu__insignia" aria-hidden="true"><%- include('../partials/icono', { icono: 'lapiz' }) %></span>
+    <span class="visualmente-oculto"><%= tieneFoto ? 'Cambiar o quitar la foto' : 'Subir una foto' %></span>
+  </summary>
+  <div class="foto-menu__panel">
+    <p class="alerta" role="alert" data-foto-error id="error-foto"<% if (!locals.errorFoto) { %> hidden<% } %>><%= locals.errorFoto ?? '' %></p>
+    <form method="post" action="/contactos/<%= contacto.id %>/foto" enctype="multipart/form-data" class="foto-menu__formulario" data-foto-formulario>
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <label for="foto" data-foto-sin-js>Imagen JPG, PNG o WebP de hasta <%= megas %>&nbsp;MB</label>
+      <input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" required data-foto-sin-js data-foto-archivo
+        <% if (locals.errorFoto) { %>aria-invalid="true" aria-describedby="error-foto"<% } %>>
+      <button type="submit" class="boton boton--secundario boton--ancho" data-foto-sin-js><%= tieneFoto ? 'Cambiar foto' : 'Subir foto' %></button>
+      <button type="button" class="foto-menu__opcion" aria-describedby="error-foto" data-foto-con-js data-foto-elegir hidden>
+        <%- include('../partials/icono', { icono: 'subir' }) %><span><%= tieneFoto ? 'Cambiar foto' : 'Subir foto' %></span>
+      </button>
+    </form>
+    <% if (tieneFoto) { %>
+      <form method="post" action="/contactos/<%= contacto.id %>/foto/quitar">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button type="submit" class="foto-menu__opcion foto-menu__opcion--peligro">
+          <%- include('../partials/icono', { icono: 'basura' }) %><span>Quitar foto</span>
+        </button>
+      </form>
+    <% } %>
+    <p class="foto-menu__nota" data-foto-con-js hidden>JPG, PNG o WebP de hasta <%= megas %>&nbsp;MB.</p>
+  </div>
+</details>
+<%# Anuncia "Subiendo la foto…" a los lectores de pantalla (fuera del menú, que se cierra al enviar). -%>
+<p class="visualmente-oculto" role="status" data-foto-estado></p>

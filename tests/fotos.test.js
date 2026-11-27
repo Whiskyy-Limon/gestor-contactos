@@ -151,6 +151,70 @@ describe('fotos de los contactos (C4, F1–F4)', () => {
       assert.ok(html.includes('>Subir foto</button>'));
     });
 
+    describe('menú de la foto en la ficha (C4)', () => {
+      it('en un contacto activo el avatar abre el menú, que viene cerrado y sin error', async () => {
+        const html = await detalle();
+
+        assert.match(html, /<details class="foto-menu" data-foto-menu data-maximo-bytes="\d+" data-mensaje-peso="[^"]+">\s*<summary class="foto-menu__boton">/);
+        assert.match(html, /<summary class="foto-menu__boton">\s*<span class="avatar avatar--\d avatar--grande" aria-hidden="true">JÁ<\/span>/);
+        assert.ok(html.includes('<span class="visualmente-oculto">Subir una foto</span>'));
+        assert.match(html, /<p class="alerta" role="alert" data-foto-error id="error-foto" hidden><\/p>/);
+        assert.ok(html.includes('<p class="visualmente-oculto" role="status" data-foto-estado></p>'));
+        assert.ok(html.includes('<script type="module" src="/js/foto.js"></script>'));
+      });
+
+      it('F1: el navegador recibe el mismo peso máximo y el mismo mensaje que usa el servidor', async () => {
+        const [, maximo, mensaje] = (await detalle()).match(/data-maximo-bytes="(\d+)" data-mensaje-peso="([^"]+)"/);
+
+        assert.equal(Number(maximo), MAXIMO_BYTES_FOTO);
+        assert.equal(mensaje, 'La foto pesa más de 2 MB.');
+      });
+
+      it('sin JavaScript trae el campo del archivo y su botón; lo que usa el script viene oculto', async () => {
+        const html = await detalle();
+
+        assert.ok(html.includes('<label for="foto" data-foto-sin-js>Imagen JPG, PNG o WebP de hasta 2&nbsp;MB</label>'));
+        assert.match(html, /<input id="foto" name="foto" type="file"[^>]* required data-foto-sin-js data-foto-archivo\s*>/);
+        assert.ok(html.includes('<button type="submit" class="boton boton--secundario boton--ancho" data-foto-sin-js>Subir foto</button>'));
+        assert.match(html, /<button type="button" class="foto-menu__opcion" aria-describedby="error-foto" data-foto-con-js data-foto-elegir hidden>[\s\S]*?<span>Subir foto<\/span>/);
+        assert.ok(html.includes('<p class="foto-menu__nota" data-foto-con-js hidden>JPG, PNG o WebP de hasta 2&nbsp;MB.</p>'));
+      });
+
+      it('sin foto ofrece solo subirla; con foto, cambiarla o quitarla (en rojo)', async () => {
+        assert.ok(!(await detalle()).includes('/foto/quitar'));
+
+        await subir(await imagen('jpeg'));
+        const html = await detalle();
+
+        assert.ok(html.includes('<span class="visualmente-oculto">Cambiar o quitar la foto</span>'));
+        assert.match(html, /data-foto-elegir hidden>[\s\S]*?<span>Cambiar foto<\/span>/);
+        assert.match(
+          html,
+          /action="\/contactos\/\d+\/foto\/quitar">\s*<input type="hidden" name="_csrf" value="[0-9a-f]{64}">\s*<button type="submit" class="foto-menu__opcion foto-menu__opcion--peligro">[\s\S]*?<span>Quitar foto<\/span>/,
+        );
+      });
+
+      it('si la foto no se pudo subir, el menú viene abierto con el error junto al campo', async () => {
+        const respuesta = await subir(Buffer.from('no es una imagen'));
+
+        assert.equal(respuesta.status, 400);
+        assert.match(respuesta.text, /<details class="foto-menu" data-foto-menu [^>]* open>/);
+        assert.match(respuesta.text, /<p class="alerta" role="alert" data-foto-error id="error-foto">El archivo no es una imagen/);
+        assert.match(respuesta.text, /<input id="foto"[^>]* aria-invalid="true" aria-describedby="error-foto">/);
+      });
+
+      it('un contacto archivado muestra su avatar, sin el menú ni el script (C5)', async () => {
+        archivarContacto(entorno.db, contactoId, entorno.usuario.id);
+
+        const html = await detalle();
+
+        assert.match(html, /<span class="avatar avatar--\d avatar--grande" aria-hidden="true">JÁ<\/span>/);
+        assert.ok(!html.includes('data-foto-menu'));
+        assert.ok(!html.includes('foto-menu__boton'));
+        assert.ok(!html.includes('/js/foto.js'));
+      });
+    });
+
     it('sube la foto: la guarda reprocesada con un nombre aleatorio y la muestra en el detalle y el listado', async () => {
       const respuesta = await subir(await imagen('jpeg'));
 

@@ -9,8 +9,11 @@ const subida = multer({
   limits: { fileSize: MAXIMO_BYTES_FOTO, files: 1, fields: 5, fieldSize: 1024, parts: 6 },
 }).single('foto');
 
+// F1: también lo muestra el navegador antes de enviar (public/js/foto.js), con el mismo texto.
+export const MENSAJE_FOTO_PESADA = `La foto pesa más de ${MAXIMO_BYTES_FOTO / 1024 / 1024} MB.`;
+
 const MENSAJES = {
-  LIMIT_FILE_SIZE: `La foto pesa más de ${MAXIMO_BYTES_FOTO / 1024 / 1024} MB.`,
+  LIMIT_FILE_SIZE: MENSAJE_FOTO_PESADA,
   LIMIT_FILE_COUNT: 'Envía una sola foto.',
   LIMIT_UNEXPECTED_FILE: 'Envía una sola foto.',
 };
