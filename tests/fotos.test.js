@@ -389,6 +389,49 @@ describe('fotos de los contactos (C4, F1–F4)', () => {
       assert.match(respuesta.text, /id="error-foto">Elige una foto\./);
     });
 
+    describe('multipart mal formado', () => {
+      // Responde 400 (es un problema del envío, no del servidor) y no lo registra como error inesperado.
+      const MENSAJE_ENVIO_INVALIDO = /El envío de la foto no es válido\. Vuelve a intentarlo\./;
+
+      it('sin boundary responde 400, no 500', async () => {
+        const respuesta = await agente
+          .post(`/contactos/${contactoId}/foto`)
+          .set('Content-Type', 'multipart/form-data')
+          .send('cualquier cosa');
+
+        assert.equal(respuesta.status, 400);
+        assert.match(respuesta.text, MENSAJE_ENVIO_INVALIDO);
+        assert.deepEqual(entorno.erroresRegistrados, []);
+        assert.deepEqual(archivos(), []);
+      });
+
+      it('con el cuerpo cortado (sin el boundary final) responde 400, no 500', async () => {
+        const token = tokenCsrf(await detalle());
+        const cuerpo = [
+          '--LIMITE',
+          'Content-Disposition: form-data; name="_csrf"',
+          '',
+          token,
+          '--LIMITE',
+          'Content-Disposition: form-data; name="foto"; filename="foto.jpg"',
+          'Content-Type: image/jpeg',
+          '',
+          'contenido cortado',
+        ].join('\r\n');
+
+        const respuesta = await agente
+          .post(`/contactos/${contactoId}/foto`)
+          .set('Content-Type', 'multipart/form-data; boundary=LIMITE')
+          .send(cuerpo);
+
+        assert.equal(respuesta.status, 400);
+        assert.match(respuesta.text, MENSAJE_ENVIO_INVALIDO);
+        assert.deepEqual(entorno.erroresRegistrados, []);
+        assert.deepEqual(archivos(), []);
+        assert.equal(fotoGuardada(), null);
+      });
+    });
+
     describe('CSRF en el formulario multipart', () => {
       it('sin token responde 403 y no se escribe ningún archivo', async () => {
         const respuesta = await subir(await imagen('jpeg'), { token: null });
