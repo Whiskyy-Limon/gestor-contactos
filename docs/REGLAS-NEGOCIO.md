@@ -26,7 +26,7 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 **Porqué:** Un contacto sin forma de comunicarse no le sirve a la empresa. El máximo mantiene la ficha legible y evita cargas abusivas. Repetir un dato dentro de la misma ficha no aporta nada y ensucia la información. La restricción es por contacto: dos contactos distintos sí pueden compartir un teléfono o un correo (por ejemplo, la central de una empresa).
 
 ### C4. Foto
-**Regla:** La foto es opcional. Si un contacto no tiene foto, se muestra un avatar con sus iniciales. La foto se agrega, se cambia o se quita desde el detalle del contacto, en un formulario aparte del de sus datos.
+**Regla:** La foto es opcional. Si un contacto no tiene foto, se muestra un avatar con sus iniciales. La foto se agrega, se cambia o se quita desde el detalle del contacto, en un formulario aparte del de sus datos. Quitarla pide confirmación (F5).
 
 **Porqué:** No siempre se tiene una foto del contacto. Las iniciales permiten reconocerlo de un vistazo en los listados sin exigir una imagen. Si el formulario de datos vuelve con un error, el navegador no conserva el archivo elegido; con la foto en un formulario aparte no hay que elegirla de nuevo.
 
@@ -123,6 +123,11 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 **Regla:** Una foto puede tener como máximo 25 megapíxeles (por ejemplo, 5000 × 5000 píxeles). Una imagen más grande se rechaza aunque pese menos de 2 MB.
 
 **Porqué:** Un archivo pequeño puede contener una imagen enorme. Una imagen "bomba", como un PNG de un solo color que pesa menos de 2 MB pero se descomprime en cientos de millones de píxeles, agotaría la memoria del servidor al procesarla. Una foto real de menos de 2 MB rara vez supera los 12 a 20 megapíxeles, así que el límite deja margen.
+
+### F5. Quitar la foto pide confirmación
+**Regla:** Quitar la foto pide confirmación en una página aparte, que muestra la foto y avisa que se borra para siempre. Solo se quita al confirmar; "Cancelar" vuelve al detalle sin cambiar nada. La confirmación funciona sin JavaScript. Cambiar la foto no pide confirmación.
+
+**Porqué:** Quitar la foto borra su archivo (F3): a diferencia de archivar un contacto (C5), no se puede deshacer, y quizás no haya otra copia de esa foto. En la ficha, "Quitar foto" está en un menú junto a "Cambiar foto": sin confirmación, un clic equivocado costaría la foto, y la pérdida de datos es justamente lo que el sistema debe evitar. Se confirma igual que archivar, con una página propia, así también funciona sin JavaScript. Cambiar la foto no la pide porque ya exige elegir un archivo en el selector, un paso deliberado que no se da por accidente.
 
 ---
 

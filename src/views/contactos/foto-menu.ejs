@@ -1,7 +1,7 @@
 <%#
   C4, F1–F4: la foto de un contacto activo, en la ficha. El avatar es el botón (<summary>) de un
   <details>: al pasar el mouse o con el foco se oscurece y muestra un lápiz; al hacer clic abre un
-  menú con "Cambiar foto" y, si tiene foto, "Quitar foto".
+  menú con "Cambiar foto" y, si tiene foto, "Quitar foto" (que lleva a una página de confirmación, F5).
   Sin JavaScript funciona igual: el menú muestra el campo del archivo y el botón para enviarlo
   (data-foto-sin-js). Con JavaScript (public/js/foto.js) esos se ocultan, se muestran los
   elementos data-foto-con-js, y "Cambiar foto" abre el selector y envía apenas se elige un archivo.
@@ -31,12 +31,10 @@
       </button>
     </form>
     <% if (tieneFoto) { %>
-      <form method="post" action="/contactos/<%= contacto.id %>/foto/quitar">
-        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <button type="submit" class="foto-menu__opcion foto-menu__opcion--peligro">
-          <%- include('../partials/icono', { icono: 'basura' }) %><span>Quitar foto</span>
-        </button>
-      </form>
+      <%# F5: lleva a la página que pide confirmación; la foto no se quita desde aquí. -%>
+      <a href="/contactos/<%= contacto.id %>/foto/quitar" class="foto-menu__opcion foto-menu__opcion--peligro">
+        <%- include('../partials/icono', { icono: 'basura' }) %><span>Quitar foto</span>
+      </a>
     <% } %>
     <p class="foto-menu__nota" data-foto-con-js hidden>JPG, PNG o WebP de hasta <%= megas %>&nbsp;MB.</p>
   </div>

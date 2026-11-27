@@ -246,7 +246,27 @@ export function crearRutasContactos(db, { carpetaFotos, registrarError }) {
     res.redirect(303, `/contactos/${contacto.id}`);
   });
 
-  // C4: quitar la foto (formulario normal, con la verificación CSRF global).
+  // F5: quitar la foto pide confirmación, porque su archivo se borra para siempre (F3). Primero una
+  // página de confirmación; el POST la quita. Como en editar, un contacto archivado vuelve a su
+  // detalle con un aviso (C5); uno sin foto, también.
+  router.get('/contactos/:id/foto/quitar', (req, res, next) => {
+    const contacto = contactoDeLaRuta(req);
+    if (!contacto) {
+      return next();
+    }
+    if (contacto.archivado) {
+      req.session.aviso = 'Este contacto está archivado: restáuralo para cambiar la foto.';
+      return res.redirect(302, `/contactos/${contacto.id}`);
+    }
+    if (!contacto.foto) {
+      req.session.aviso = 'Este contacto no tiene foto.';
+      return res.redirect(302, `/contactos/${contacto.id}`);
+    }
+    res.render('contactos/quitar-foto', { titulo: 'Quitar foto', contacto });
+  });
+
+  // C4, F5: quitar la foto, desde la página de confirmación (formulario normal, con la verificación
+  // CSRF global).
   router.post('/contactos/:id/foto/quitar', async (req, res, next) => {
     const id = leerId(req.params.id);
     if (id === null) {

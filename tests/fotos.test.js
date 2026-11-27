@@ -190,8 +190,17 @@ describe('fotos de los contactos (C4, F1–F4)', () => {
         assert.match(html, /data-foto-elegir hidden>[\s\S]*?<span>Cambiar foto<\/span>/);
         assert.match(
           html,
-          /action="\/contactos\/\d+\/foto\/quitar">\s*<input type="hidden" name="_csrf" value="[0-9a-f]{64}">\s*<button type="submit" class="foto-menu__opcion foto-menu__opcion--peligro">[\s\S]*?<span>Quitar foto<\/span>/,
+          new RegExp(`<a href="/contactos/${contactoId}/foto/quitar" class="foto-menu__opcion foto-menu__opcion--peligro">[\\s\\S]*?<span>Quitar foto</span>`),
         );
+      });
+
+      it('F5: "Quitar foto" lleva a la confirmación; el detalle no la quita directamente', async () => {
+        await subir(await imagen('jpeg'));
+
+        const html = await detalle();
+
+        assert.ok(!html.includes(`action="/contactos/${contactoId}/foto/quitar"`));
+        assert.ok(html.includes(`<a href="/contactos/${contactoId}/foto/quitar" class="foto-menu__opcion foto-menu__opcion--peligro">`));
       });
 
       it('si la foto no se pudo subir, el menú viene abierto con el error junto al campo', async () => {
@@ -252,20 +261,91 @@ describe('fotos de los contactos (C4, F1–F4)', () => {
       assert.deepEqual(archivos(), [fotoGuardada()]);
     });
 
-    it('quitar la foto borra su archivo y vuelve a las iniciales', async () => {
-      await subir(await imagen('jpeg'));
+    describe('quitar la foto (C4, F5)', () => {
+      const confirmacion = () => agente.get(`/contactos/${contactoId}/foto/quitar`);
 
-      const respuesta = await agente
-        .post(`/contactos/${contactoId}/foto/quitar`)
-        .type('form')
-        .send({ _csrf: tokenCsrf(await detalle()) });
+      it('F5: la confirmación muestra la foto, avisa que se borra para siempre y ofrece cancelar', async () => {
+        await subir(await imagen('jpeg'));
+        const foto = fotoGuardada();
 
-      assert.equal(respuesta.status, 303);
-      assert.equal(fotoGuardada(), null);
-      assert.deepEqual(archivos(), []);
-      const html = await detalle();
-      assert.ok(html.includes('Foto quitada.'));
-      assert.match(html, /<span class="avatar avatar--\d avatar--grande" aria-hidden="true">JÁ<\/span>/);
+        const respuesta = await confirmacion();
+
+        assert.equal(respuesta.status, 200);
+        const html = respuesta.text;
+        assert.match(html, /<h1>¿Quitar la foto de José Álvarez\?<\/h1>/);
+        assert.ok(html.includes(`<img class="avatar avatar--foto avatar--grande" src="/fotos/${foto}" alt="">`));
+        assert.match(html, /La foto se borra para siempre: no se puede recuperar\./);
+        assert.match(
+          html,
+          new RegExp(`<form method="post" action="/contactos/${contactoId}/foto/quitar" class="acciones">\\s*<input type="hidden" name="_csrf" value="[0-9a-f]{64}">`),
+        );
+        assert.ok(html.includes('<button type="submit" class="boton boton--peligro">Quitar foto</button>'));
+        assert.ok(html.includes(`<a href="/contactos/${contactoId}" class="boton boton--secundario">Cancelar</a>`));
+      });
+
+      it('F5: abrir la confirmación (o cancelar) no quita nada', async () => {
+        await subir(await imagen('jpeg'));
+        const foto = fotoGuardada();
+        const version = buscarContacto(entorno.db, contactoId).version;
+
+        await confirmacion();
+        await detalle(); // "Cancelar" es un enlace al detalle
+
+        assert.equal(fotoGuardada(), foto);
+        assert.deepEqual(archivos(), [foto]);
+        assert.equal(buscarContacto(entorno.db, contactoId).version, version);
+      });
+
+      it('al confirmar, borra su archivo y vuelve a las iniciales', async () => {
+        await subir(await imagen('jpeg'));
+
+        const respuesta = await agente
+          .post(`/contactos/${contactoId}/foto/quitar`)
+          .type('form')
+          .send({ _csrf: tokenCsrf((await confirmacion()).text) });
+
+        assert.equal(respuesta.status, 303);
+        assert.equal(respuesta.headers.location, `/contactos/${contactoId}`);
+        assert.equal(fotoGuardada(), null);
+        assert.deepEqual(archivos(), []);
+        const html = await detalle();
+        assert.ok(html.includes('Foto quitada.'));
+        assert.match(html, /<span class="avatar avatar--\d avatar--grande" aria-hidden="true">JÁ<\/span>/);
+      });
+
+      it('sin foto, la confirmación vuelve al detalle con un aviso', async () => {
+        const respuesta = await confirmacion();
+
+        assert.equal(respuesta.status, 302);
+        assert.equal(respuesta.headers.location, `/contactos/${contactoId}`);
+        assert.ok((await detalle()).includes('Este contacto no tiene foto.'));
+      });
+
+      it('con un contacto archivado vuelve al detalle con un aviso y no quita la foto (C5)', async () => {
+        await subir(await imagen('jpeg'));
+        const foto = fotoGuardada();
+        archivarContacto(entorno.db, contactoId, entorno.usuario.id);
+
+        const respuesta = await confirmacion();
+
+        assert.equal(respuesta.status, 302);
+        assert.equal(respuesta.headers.location, `/contactos/${contactoId}`);
+        assert.ok((await detalle()).includes('restáuralo para cambiar la foto'));
+        assert.equal(fotoGuardada(), foto);
+      });
+
+      it('con un contacto que no existe o un id inválido responde 404', async () => {
+        for (const id of ['999', 'abc', '0']) {
+          assert.equal((await agente.get(`/contactos/${id}/foto/quitar`)).status, 404, id);
+        }
+      });
+
+      it('sin sesión, la confirmación redirige al login', async () => {
+        const respuesta = await request(entorno.app).get(`/contactos/${contactoId}/foto/quitar`);
+
+        assert.equal(respuesta.status, 302);
+        assert.equal(respuesta.headers.location, '/login');
+      });
     });
 
     it('un PNG llamado .jpg y enviado como image/jpeg se acepta: cuenta el contenido (F2)', async () => {

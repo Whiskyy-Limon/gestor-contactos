@@ -1051,6 +1051,15 @@ input[type="file"]::file-selector-button:hover {
   margin: 0;
 }
 
+/* F5: confirmación antes de quitar la foto: la foto que se va a quitar, arriba del título. */
+.confirmacion__foto {
+  margin-bottom: var(--espacio-5);
+}
+
+.confirmacion__foto .avatar {
+  display: flex;
+}
+
 /* Contacto archivado (C5): franja arriba de la ficha, con "Restaurar" como acción principal. */
 .archivado {
   display: flex;
@@ -1229,7 +1238,7 @@ input[type="file"]::file-selector-button:hover {
   width: 100%;
 }
 
-.foto-menu__formulario + form {
+.foto-menu__formulario + .foto-menu__opcion {
   margin-top: var(--espacio-2);
 }
 
@@ -1246,6 +1255,7 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 600;
   color: var(--color-texto);
   text-align: left;
+  text-decoration: none; /* "Quitar foto" es un enlace (lleva a la confirmación) */
   background: none;
   border: 0;
   border-radius: var(--radio-control);
@@ -1265,7 +1275,7 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* Con JavaScript las dos opciones van seguidas, sin el espacio que separa el formulario. */
-.foto-menu__formulario:has(> .foto-menu__opcion:not([hidden])) + form {
+.foto-menu__formulario:has(> .foto-menu__opcion:not([hidden])) + .foto-menu__opcion {
   margin-top: 0;
 }
 

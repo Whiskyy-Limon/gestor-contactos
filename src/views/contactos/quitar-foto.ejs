@@ -1,0 +1,18 @@
+<%- include('../partials/cabecera') %>
+<%# F5: confirmación antes de quitar la foto, porque su archivo se borra para siempre (F3). Funciona
+    sin JavaScript: el botón envía un POST con el token CSRF. -%>
+<section class="tarjeta">
+  <div class="confirmacion__foto">
+    <%- include('../partials/avatar', { contacto, grande: true }) %>
+  </div>
+  <h1>¿Quitar la foto de <%= contacto.nombres %> <%= contacto.apellidos %>?</h1>
+  <p>La foto se borra para siempre: no se puede recuperar. En su lugar se verán sus iniciales y,
+    si la necesitas otra vez, tendrás que volver a subirla.</p>
+
+  <form method="post" action="/contactos/<%= contacto.id %>/foto/quitar" class="acciones">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <button type="submit" class="boton boton--peligro">Quitar foto</button>
+    <a href="/contactos/<%= contacto.id %>" class="boton boton--secundario">Cancelar</a>
+  </form>
+</section>
+<%- include('../partials/pie') %>
