@@ -8,6 +8,7 @@ import { crearUsuario } from '../src/services/usuarios.js';
 import {
   MAXIMO_INTENTOS_FALLIDOS_POR_CORREO,
   MAXIMO_INTENTOS_FALLIDOS_POR_IP,
+  MAXIMO_VISITAS_LOGIN_POR_IP,
 } from '../src/validators/reglas.js';
 import {
   CORREO,
@@ -242,6 +243,38 @@ describe('seguridad', () => {
       const bloqueado = await intentar({ correo: correos[MAXIMO_INTENTOS_FALLIDOS_POR_IP], password: PASSWORD });
 
       assert.equal(bloqueado.status, 429);
+    });
+  });
+
+  describe('límite de visitas al formulario de login (U7)', () => {
+    it(`la visita ${MAXIMO_VISITAS_LOGIN_POR_IP + 1} desde la misma IP responde 429 y ya no crea sesiones`, async () => {
+      // Cada visita sin cookie crea una sesión anónima nueva (la del token CSRF).
+      for (let i = 0; i < MAXIMO_VISITAS_LOGIN_POR_IP; i++) {
+        const visita = await request(entorno.app).get('/login');
+        assert.equal(visita.status, 200, `visita ${i + 1}`);
+      }
+      assert.equal(contarSesiones(entorno.db), MAXIMO_VISITAS_LOGIN_POR_IP);
+
+      const bloqueada = await request(entorno.app).get('/login');
+
+      assert.equal(bloqueada.status, 429);
+      assert.match(bloqueada.text, /Demasiadas visitas desde esta conexión/);
+      assert.equal(tokenCsrf(bloqueada.text), null);
+      assert.equal(cookieDeSesion(bloqueada), null);
+      assert.equal(contarSesiones(entorno.db), MAXIMO_VISITAS_LOGIN_POR_IP);
+    });
+
+    it('con sesión iniciada, GET /login redirige y no cuenta para el límite', async () => {
+      const agente = request.agent(entorno.app);
+      await iniciarSesion(agente); // 1 visita al formulario
+      for (let i = 0; i < MAXIMO_VISITAS_LOGIN_POR_IP; i++) {
+        const respuesta = await agente.get('/login');
+        assert.equal(respuesta.status, 302, `visita ${i + 1}`);
+      }
+
+      const otraPersona = await request(entorno.app).get('/login');
+
+      assert.equal(otraPersona.status, 200);
     });
   });
 

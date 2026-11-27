@@ -2,7 +2,9 @@ import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import {
   MAXIMO_INTENTOS_FALLIDOS_POR_CORREO,
   MAXIMO_INTENTOS_FALLIDOS_POR_IP,
+  MAXIMO_VISITAS_LOGIN_POR_IP,
   VENTANA_INTENTOS_LOGIN_MS,
+  VENTANA_VISITAS_LOGIN_MS,
 } from '../validators/reglas.js';
 
 // U5: límite de intentos fallidos de inicio de sesión. Son dos contadores:
@@ -43,4 +45,26 @@ export function crearLimitesLogin({ alBloquear }) {
   });
 
   return [porIpYCorreo, porIp];
+}
+
+const MENSAJE_DEMASIADAS_VISITAS =
+  'Demasiadas visitas desde esta conexión. Espera unos minutos e intenta de nuevo.';
+
+// U7: límite de visitas al formulario de login (GET /login) por IP. Cada visita sin sesión guarda
+// una sesión anónima en la base de datos (la del token CSRF); sin límite, alguien sin cuenta podría
+// crear filas sin fin hasta llenar el disco. Cuenta todas las visitas, no solo las fallidas.
+// Al superarlo responde con la página de error genérica, que no tiene formulario: no crea sesión.
+export function crearLimiteVisitasLogin() {
+  return rateLimit({
+    windowMs: VENTANA_VISITAS_LOGIN_MS,
+    limit: MAXIMO_VISITAS_LOGIN_POR_IP,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (req, res, next) => {
+      const error = new Error('Límite de visitas a /login superado');
+      error.status = 429;
+      error.mensajePublico = MENSAJE_DEMASIADAS_VISITAS;
+      next(error);
+    },
+  });
 }

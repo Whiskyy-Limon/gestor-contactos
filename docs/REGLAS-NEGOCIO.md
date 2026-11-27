@@ -163,6 +163,11 @@ Cada regla tiene un código (C1, T2, …) para poder citarla en el código, las 
 
 **Porqué:** Es una empresa pequeña en la que todo el personal trabaja con los mismos contactos; separar permisos hoy agregaría pasos y complejidad sin resolver un problema actual. La auditoría (A1) permite saber quién hizo cada cambio. Los roles quedan como mejora futura.
 
+### U7. Límite de visitas al formulario de inicio de sesión
+**Regla:** Desde una misma IP se puede abrir el formulario de inicio de sesión como máximo 100 veces cada 10 minutos. Al superarlo, se muestra "Demasiadas visitas desde esta conexión. Espera unos minutos e intenta de nuevo." hasta que termine la ventana. Quien ya inició sesión no cuenta: al abrir el formulario se lo lleva al listado. Los contadores se guardan en memoria, como los de U5.
+
+**Porqué:** Cada visita al formulario guarda una sesión en la base de datos, porque el formulario lleva un token contra envíos falsificados (CSRF). Sin límite, alguien sin cuenta podría abrir el formulario millones de veces hasta llenar el disco, y entonces nadie podría iniciar sesión. 100 visitas cada 10 minutos alcanzan de sobra para una oficina entera que sale a internet con la misma IP.
+
 ---
 
 ## Auditoría

@@ -66,3 +66,10 @@ export const MAXIMO_BYTES_PASSWORD = 72;
 export const VENTANA_INTENTOS_LOGIN_MS = 8 * 60 * 1000;
 export const MAXIMO_INTENTOS_FALLIDOS_POR_CORREO = 5; // por cada combinación de IP y correo
 export const MAXIMO_INTENTOS_FALLIDOS_POR_IP = 30; // por IP, sumando todos los correos
+
+// U7: visitas al formulario de inicio de sesión (GET /login) permitidas por IP en cada ventana.
+// Cada visita sin sesión guarda una sesión anónima (por el token CSRF): el límite acota cuántas
+// filas puede crear alguien sin cuenta. 100 cada 10 minutos alcanza de sobra para una oficina
+// entera que sale a internet con la misma IP.
+export const VENTANA_VISITAS_LOGIN_MS = 10 * 60 * 1000;
+export const MAXIMO_VISITAS_LOGIN_POR_IP = 100;

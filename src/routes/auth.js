@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { redirigirSiHaySesion } from '../middlewares/auth.js';
-import { crearLimitesLogin } from '../middlewares/limite-login.js';
+import { crearLimiteVisitasLogin, crearLimitesLogin } from '../middlewares/limite-login.js';
 import {
   DURACION_SESION_INICIADA_MS,
   destruirSesion,
@@ -32,8 +32,10 @@ export function crearRutasLogin(db) {
     alBloquear: (req, res) =>
       mostrarLogin(res, { estado: 429, error: MENSAJE_DEMASIADOS_INTENTOS, correo: correoEscrito(req) }),
   });
+  // U7. Va después de redirigirSiHaySesion: quien ya inició sesión es redirigido y no cuenta.
+  const limiteVisitas = crearLimiteVisitasLogin();
 
-  router.get('/login', redirigirSiHaySesion, (req, res) => {
+  router.get('/login', redirigirSiHaySesion, limiteVisitas, (req, res) => {
     mostrarLogin(res);
   });
 
