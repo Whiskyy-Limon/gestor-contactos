@@ -55,6 +55,8 @@ const esquemaEntorno = z.object({
       .refine((puerto) => puerto >= 1 && puerto <= 65535, { error: MENSAJE_PUERTO }),
     3000,
   ),
+  // Su valor por defecto depende de NODE_ENV (ver leerConfiguracion).
+  HOST: z.preprocess(vacioComoAusente, z.string().trim().optional()),
   SESSION_SECRET: z.preprocess(vacioComoAusente, z.string().optional()),
   DATABASE_PATH: conValorPorDefecto(z.string(), 'storage/contactos.db'),
   UPLOADS_PATH: conValorPorDefecto(z.string(), 'storage/uploads'),
@@ -76,10 +78,15 @@ export function leerConfiguracion(entorno) {
     );
   }
   const variables = resultado.data;
+  const isProduction = variables.NODE_ENV === 'production';
   return {
     nodeEnv: variables.NODE_ENV,
-    isProduction: variables.NODE_ENV === 'production',
+    isProduction,
     port: variables.PORT,
+    // Dirección en que escucha el servidor. Sin HOST: en desarrollo, solo esta computadora (nadie de
+    // la red llega a un servidor con la cookie sin Secure); en producción, null = todas las
+    // interfaces (lo que necesitan un proxy o un contenedor).
+    host: variables.HOST ?? (isProduction ? null : '127.0.0.1'),
     sessionSecret: variables.SESSION_SECRET,
     databasePath: variables.DATABASE_PATH,
     carpetaFotos: variables.UPLOADS_PATH,

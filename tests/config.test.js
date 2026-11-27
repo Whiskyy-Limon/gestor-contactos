@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const RAIZ = path.join(import.meta.dirname, '..');
-const VARIABLES = ['PORT', 'NODE_ENV', 'SESSION_SECRET', 'DATABASE_PATH', 'UPLOADS_PATH', 'TRUST_PROXY'];
+const VARIABLES = ['PORT', 'HOST', 'NODE_ENV', 'SESSION_SECRET', 'DATABASE_PATH', 'UPLOADS_PATH', 'TRUST_PROXY'];
 
 // Entorno del proceso de prueba: el actual sin las variables de la app, más `variables`.
 function entornoCon(variables) {
@@ -37,6 +37,7 @@ const POR_DEFECTO = {
   nodeEnv: 'development',
   isProduction: false,
   port: 3000,
+  host: '127.0.0.1', // en desarrollo, solo esta computadora
   databasePath: 'storage/contactos.db',
   carpetaFotos: 'storage/uploads',
   trustProxy: false,
@@ -53,6 +54,7 @@ describe('configuración (src/config)', () => {
   it('una variable vacía (o solo con espacios) usa su valor por defecto', () => {
     const { status, stderr, config } = cargarConfig({
       PORT: '',
+      HOST: '',
       NODE_ENV: '',
       SESSION_SECRET: '',
       DATABASE_PATH: '',
@@ -79,11 +81,17 @@ describe('configuración (src/config)', () => {
       nodeEnv: 'production',
       isProduction: true,
       port: 8080,
+      host: null, // en producción, sin HOST: todas las interfaces
       sessionSecret: 'x'.repeat(40),
       databasePath: 'datos/app.db',
       carpetaFotos: 'datos/fotos',
       trustProxy: 1,
     });
+  });
+
+  it('HOST: se respeta si se indica, en cualquier entorno', () => {
+    assert.equal(cargarConfig({ HOST: '0.0.0.0' }).config.host, '0.0.0.0');
+    assert.equal(cargarConfig({ HOST: ' 127.0.0.1 ', NODE_ENV: 'production' }).config.host, '127.0.0.1');
   });
 
   it('TRUST_PROXY: "0" y "false" son sin proxy; otro texto se pasa tal cual a Express', () => {
