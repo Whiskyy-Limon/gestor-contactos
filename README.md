@@ -51,6 +51,7 @@ npm ci
 
 # 2. Crear el archivo de configuración a partir de la plantilla
 Copy-Item .env.example .env
+# En CMD: copy .env.example .env
 
 # 3. Generar un secreto para la cookie de sesión y pegarlo en .env, en SESSION_SECRET=
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
