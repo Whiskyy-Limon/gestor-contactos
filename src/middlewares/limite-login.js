@@ -11,6 +11,12 @@ import {
 // - por IP, más alto: frena a quien prueba muchos correos distintos.
 // Los intentos correctos no cuentan (skipSuccessfulRequests: una respuesta < 400 se descuenta).
 // Los contadores viven en memoria: se reinician al reiniciar el servidor.
+//
+// Orden: primero el contador por IP y correo, después el por IP. express-rate-limit suma el
+// intento antes de decidir y no descuenta un 429; si el contador por IP fuera primero, cada
+// reintento de un correo ya bloqueado sumaría al tope de la IP, y una sola persona que insiste
+// terminaría bloqueando a toda la oficina. Así, un correo bloqueado corta la cadena antes de
+// llegar al contador por IP.
 
 function correoNormalizado(req) {
   const correo = req.body?.correo;
@@ -36,5 +42,5 @@ export function crearLimitesLogin({ alBloquear }) {
     keyGenerator: (req) => `${ipKeyGenerator(req.ip)}|${correoNormalizado(req)}`,
   });
 
-  return [porIp, porIpYCorreo];
+  return [porIpYCorreo, porIp];
 }

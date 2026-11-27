@@ -201,6 +201,24 @@ describe('seguridad', () => {
       assert.equal(otroCorreo.status, 303);
     });
 
+    it('los reintentos de un correo ya bloqueado no suman al tope por IP: otro correo de la misma IP entra igual', async () => {
+      await crearUsuario(entorno.db, { nombre: 'Luis Rojas', correo: 'luis@empresa.pe', password: PASSWORD }, { costo: 4 });
+      for (let i = 0; i < MAXIMO_INTENTOS_FALLIDOS_POR_CORREO; i++) {
+        const fallido = await intentar({ password: 'otra-clave-123' });
+        assert.equal(fallido.status, 401, `intento ${i + 1}`);
+      }
+      // Ana sigue intentando con su correo bloqueado hasta completar el tope por IP.
+      const reintentos = MAXIMO_INTENTOS_FALLIDOS_POR_IP - MAXIMO_INTENTOS_FALLIDOS_POR_CORREO;
+      for (let i = 0; i < reintentos; i++) {
+        const bloqueado = await intentar({ password: 'otra-clave-123' });
+        assert.equal(bloqueado.status, 429, `reintento ${i + 1}`);
+      }
+
+      const otroCorreo = await intentar({ correo: 'luis@empresa.pe', password: PASSWORD });
+
+      assert.equal(otroCorreo.status, 303);
+    });
+
     it('los inicios de sesión correctos no cuentan', async () => {
       for (let i = 0; i < MAXIMO_INTENTOS_FALLIDOS_POR_CORREO + 2; i++) {
         const correcto = await intentar({ password: PASSWORD });
