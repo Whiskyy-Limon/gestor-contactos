@@ -1,3 +1,22 @@
   </main>
+  <%#
+    Botón del modo claro/oscuro, en todas las páginas: public/js/tema.js lo muestra y lo maneja.
+    Sin JavaScript queda oculto (hidden) y la página sigue el modo del sistema. El ícono muestra el
+    modo actual (luna en oscuro, sol en claro: estilos.css) y el texto oculto, lo que hace
+    ("Cambiar a modo claro"). La luna es el círculo con la "mordida" de la máscara encima.
+  -%>
+  <button type="button" class="tema" data-tema-boton hidden>
+    <svg class="tema__icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <mask id="tema-mordida">
+        <rect width="24" height="24" fill="white"/>
+        <circle class="tema__mordida" cx="17" cy="7" r="7" fill="black"/>
+      </mask>
+      <circle class="tema__astro" cx="12" cy="12" r="9" fill="currentColor" mask="url(#tema-mordida)"/>
+      <path class="tema__rayos" d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.28 5.28l1.77 1.77M16.95 16.95l1.77 1.77M5.28 18.72l1.77-1.77M16.95 7.05l1.77-1.77"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span class="visualmente-oculto" data-tema-texto></span>
+  </button>
+  <script type="module" src="/js/tema.js"></script>
 </body>
 </html>

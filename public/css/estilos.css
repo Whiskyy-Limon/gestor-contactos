@@ -2,56 +2,68 @@
    no los permite.
 
    Orden del archivo:
-     1. Variables: colores, espacios, radios, sombras y tipografía (y los colores del modo oscuro)
+     1. Variables: colores (cada uno con su valor claro y oscuro), espacios, radios, sombras y
+        tipografía
      2. Base: elementos HTML sin clase
      3. Estructura: cabecera, contenido y tarjetas
-     4. Componentes: botones, campos, avisos, etiquetas y avatares
+     4. Componentes: botones, campos, avisos, etiquetas, avatares y el botón del modo
      5. Páginas: acceso, formulario, detalle y listado
 
    Regla: los colores, espacios, radios y sombras se definen solo en las variables; el resto del
    archivo usa var(--…). Todo texto cumple WCAG AA contra su fondo (4,5:1), y los bordes de los
-   campos y el foco, 3:1. El modo oscuro solo cambia los valores de las variables. */
+   campos y el foco, 3:1, en los dos modos.
+
+   Modo claro y oscuro: cada color se define una sola vez con sus dos valores,
+   light-dark(claro, oscuro), y la propiedad color-scheme decide cuál se usa. Sin elección, la
+   página sigue el modo del sistema; con el botón del modo (public/js/tema.js), <html> lleva
+   data-tema="claro" u "oscuro", que public/js/tema-inicial.js pone antes del primer dibujo.
+   light-dark() requiere navegadores de 2024 en adelante (Chrome y Edge 123, Firefox 120,
+   Safari 17.5); para los anteriores hay un respaldo con los valores claros, al final de la
+   sección 1. */
 
 /* 1. Variables ----------------------------------------------------------------------------- */
 
 :root {
-  /* Los controles nativos (selectores, casillas, barras de desplazamiento) siguen el modo. */
+  /* Sin elección, el modo del sistema. Los controles nativos (selectores, casillas, barras de
+     desplazamiento) también siguen el modo. */
   color-scheme: light dark;
 
-  /* Colores del modo claro (paleta Índigo) */
-  --color-fondo: #f5f6fa;
-  --color-superficie: #ffffff;
-  --color-superficie-suave: #f0f1f7;
-  --color-campo: #ffffff;
-  --color-texto: #171a23;
-  --color-texto-suave: #5a6072;
-  --color-borde: #dde0ea; /* separadores: decorativos */
-  --color-borde-boton: #c9cdd9; /* decorativo: el texto del botón ya lo identifica */
-  --color-borde-campo: #858b9c; /* 3:1 contra el fondo: el borde es lo que muestra el campo */
-  --color-primario: #4f46e5;
-  --color-primario-hover: #4338ca;
-  --color-sobre-primario: #ffffff;
-  --color-primario-suave: #eef0ff;
-  --color-enlace: #4338ca;
-  --color-foco: #4f46e5;
+  /* Colores: light-dark(modo claro, modo oscuro). Paleta Índigo. */
+  --color-fondo: light-dark(#f5f6fa, #0f1117);
+  --color-superficie: light-dark(#ffffff, #181b23);
+  --color-superficie-suave: light-dark(#f0f1f7, #20242f);
+  --color-campo: light-dark(#ffffff, #0f1117);
+  --color-texto: light-dark(#171a23, #e8eaf1);
+  --color-texto-suave: light-dark(#5a6072, #a3a9ba);
+  --color-borde: light-dark(#dde0ea, #2c313d); /* separadores: decorativos */
+  --color-borde-boton: light-dark(#c9cdd9, #454c5e); /* decorativo: el texto del botón ya lo identifica */
+  --color-borde-campo: light-dark(#858b9c, #6a7183); /* 3:1 contra el fondo: el borde es lo que muestra el campo */
+  /* En oscuro, con texto blanco, un índigo medio no llega a 4,5:1: el botón principal es claro y
+     su texto, oscuro. */
+  --color-primario: light-dark(#4f46e5, #a5b4fc);
+  --color-primario-hover: light-dark(#4338ca, #c7d2fe);
+  --color-sobre-primario: light-dark(#ffffff, #11132a);
+  --color-primario-suave: light-dark(#eef0ff, #23264a);
+  --color-enlace: light-dark(#4338ca, #b4bffd);
+  --color-foco: light-dark(#4f46e5, #a5b4fc);
   --color-peligro: #c42b2b;
-  --color-peligro-hover: #a82222;
+  --color-peligro-hover: light-dark(#a82222, #b42828);
   --color-sobre-peligro: #ffffff;
-  --color-peligro-texto: #b42323;
-  --color-error-fondo: #fdecec;
-  --color-error-borde: #f5c2c2;
-  --color-error-texto: #a61b1b;
-  --color-exito-fondo: #e6f5ec;
-  --color-exito-borde: #b6e2c8;
-  --color-exito-texto: #146c43;
+  --color-peligro-texto: light-dark(#b42323, #ff9b9b);
+  --color-error-fondo: light-dark(#fdecec, #3d1618);
+  --color-error-borde: light-dark(#f5c2c2, #6b2a2d);
+  --color-error-texto: light-dark(#a61b1b, #ffb4b4);
+  --color-exito-fondo: light-dark(#e6f5ec, #0f3324);
+  --color-exito-borde: light-dark(#b6e2c8, #1f5a40);
+  --color-exito-texto: light-dark(#146c43, #8fe0b5);
 
   /* Etiquetas de tipo de contacto (C6): el texto siempre dice el tipo; el color ayuda a ubicarlo. */
-  --color-cliente-texto: #1e4fb8;
-  --color-cliente-fondo: #e3edff;
-  --color-proveedor-texto: #8a4508;
-  --color-proveedor-fondo: #fdf1d8;
-  --color-ambos-texto: #6b21a8;
-  --color-ambos-fondo: #f3e8ff;
+  --color-cliente-texto: light-dark(#1e4fb8, #a9c6ff);
+  --color-cliente-fondo: light-dark(#e3edff, #1a2a4a);
+  --color-proveedor-texto: light-dark(#8a4508, #f5c66e);
+  --color-proveedor-fondo: light-dark(#fdf1d8, #3a2a0e);
+  --color-ambos-texto: light-dark(#6b21a8, #d8b9ff);
+  --color-ambos-fondo: light-dark(#f3e8ff, #33204d);
 
   /* Avatares con iniciales (C4): texto blanco, 5,3:1 o más en ambos modos. */
   --color-sobre-avatar: #ffffff;
@@ -82,9 +94,14 @@
   --radio-tarjeta: 12px;
   --radio-redondo: 999px;
 
-  /* Sombras y foco */
-  --sombra-tarjeta: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 8%);
-  --sombra-elevada: 0 12px 32px rgb(16 24 40 / 14%), 0 2px 6px rgb(16 24 40 / 8%);
+  /* Sombras y foco. En oscuro las sombras casi no se ven: las tarjetas no llevan (se distinguen
+     por su borde) y lo que flota encima (menús, el botón del modo), una sola y más intensa. */
+  --sombra-tarjeta:
+    0 1px 2px light-dark(rgb(16 24 40 / 5%), transparent),
+    0 1px 3px light-dark(rgb(16 24 40 / 8%), transparent);
+  --sombra-elevada:
+    0 12px 32px light-dark(rgb(16 24 40 / 14%), rgb(0 0 0 / 50%)),
+    0 2px 6px light-dark(rgb(16 24 40 / 8%), transparent);
   --halo-foco: 0 0 0 4px color-mix(in srgb, var(--color-foco) 22%, transparent);
 
   /* Tipografía: la fuente del sistema (Segoe UI en Windows) */
@@ -99,46 +116,67 @@
   /* Controles y movimiento */
   --alto-control: 2.75rem; /* 44 px: cómodo para el dedo */
   --transicion: 150ms ease;
+  --transicion-tema: 500ms cubic-bezier(0.4, 0, 0.2, 1); /* el ícono del botón del modo */
+
+  /* Botón del modo: fijo abajo a la derecha. Al final de cada página queda libre su alto, su
+     margen y un respiro, así al bajar del todo no tapa nada. */
+  --tema-tamano: 3rem; /* 48 px: cómodo para el dedo */
+  --tema-margen: var(--espacio-4);
+  --tema-reserva: calc(var(--tema-tamano) + var(--tema-margen) + var(--espacio-2));
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-fondo: #0f1117;
-    --color-superficie: #181b23;
-    --color-superficie-suave: #20242f;
-    --color-campo: #0f1117;
-    --color-texto: #e8eaf1;
-    --color-texto-suave: #a3a9ba;
-    --color-borde: #2c313d;
-    --color-borde-boton: #454c5e;
-    --color-borde-campo: #6a7183;
-    /* Con texto blanco, un índigo medio no llega a 4,5:1: el botón principal es claro y su texto, oscuro. */
-    --color-primario: #a5b4fc;
-    --color-primario-hover: #c7d2fe;
-    --color-sobre-primario: #11132a;
-    --color-primario-suave: #23264a;
-    --color-enlace: #b4bffd;
-    --color-foco: #a5b4fc;
-    --color-peligro: #c42b2b;
-    --color-peligro-hover: #b42828;
-    --color-sobre-peligro: #ffffff;
-    --color-peligro-texto: #ff9b9b;
-    --color-error-fondo: #3d1618;
-    --color-error-borde: #6b2a2d;
-    --color-error-texto: #ffb4b4;
-    --color-exito-fondo: #0f3324;
-    --color-exito-borde: #1f5a40;
-    --color-exito-texto: #8fe0b5;
-    --color-cliente-texto: #a9c6ff;
-    --color-cliente-fondo: #1a2a4a;
-    --color-proveedor-texto: #f5c66e;
-    --color-proveedor-fondo: #3a2a0e;
-    --color-ambos-texto: #d8b9ff;
-    --color-ambos-fondo: #33204d;
+/* Modo elegido con el botón: tiene prioridad sobre el del sistema. Es lo único propio de cada
+   modo; los colores ya tienen sus dos valores arriba. */
+:root[data-tema="claro"] {
+  color-scheme: light;
+}
 
-    /* En oscuro las sombras casi no se ven: las tarjetas se distinguen por su borde. */
-    --sombra-tarjeta: none;
-    --sombra-elevada: 0 12px 32px rgb(0 0 0 / 50%);
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+}
+
+/* Respaldo para navegadores sin light-dark() (anteriores a 2024). Sin él, en esos navegadores
+   ninguna variable de color sería válida: los campos quedarían sin borde, los botones principales
+   parecerían texto y no se vería el foco. Con él se ven siempre en modo claro, y public/js/tema.js
+   no muestra el botón del modo (no tendría efecto). Repite el valor claro de cada variable que usa
+   light-dark(): al cambiar un color claro, se cambia también aquí. tests/tema.test.js verifica que
+   coincidan y que no falte ninguno. */
+@supports not (color: light-dark(#000, #fff)) {
+  /* Con :root[data-tema] también gana a las reglas del modo elegido: siempre claro. */
+  :root,
+  :root[data-tema] {
+    color-scheme: light;
+    --color-fondo: #f5f6fa;
+    --color-superficie: #ffffff;
+    --color-superficie-suave: #f0f1f7;
+    --color-campo: #ffffff;
+    --color-texto: #171a23;
+    --color-texto-suave: #5a6072;
+    --color-borde: #dde0ea;
+    --color-borde-boton: #c9cdd9;
+    --color-borde-campo: #858b9c;
+    --color-primario: #4f46e5;
+    --color-primario-hover: #4338ca;
+    --color-sobre-primario: #ffffff;
+    --color-primario-suave: #eef0ff;
+    --color-enlace: #4338ca;
+    --color-foco: #4f46e5;
+    --color-peligro-hover: #a82222;
+    --color-peligro-texto: #b42323;
+    --color-error-fondo: #fdecec;
+    --color-error-borde: #f5c2c2;
+    --color-error-texto: #a61b1b;
+    --color-exito-fondo: #e6f5ec;
+    --color-exito-borde: #b6e2c8;
+    --color-exito-texto: #146c43;
+    --color-cliente-texto: #1e4fb8;
+    --color-cliente-fondo: #e3edff;
+    --color-proveedor-texto: #8a4508;
+    --color-proveedor-fondo: #fdf1d8;
+    --color-ambos-texto: #6b21a8;
+    --color-ambos-fondo: #f3e8ff;
+    --sombra-tarjeta: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 8%);
+    --sombra-elevada: 0 12px 32px rgb(16 24 40 / 14%), 0 2px 6px rgb(16 24 40 / 8%);
   }
 }
 
@@ -866,6 +904,78 @@ input[type="file"]::file-selector-button:hover {
 .avatar--3 { background: var(--color-avatar-3); }
 .avatar--4 { background: var(--color-avatar-4); }
 .avatar--5 { background: var(--color-avatar-5); }
+
+/* Botón del modo claro/oscuro (partials/pie.ejs y public/js/tema.js): redondo, fijo abajo a la
+   derecha, en todas las páginas. Sin JavaScript no se muestra (hidden). El ícono muestra el modo
+   actual, luna en oscuro y sol en claro, y al cambiar se transforma: la "mordida" que forma la
+   luna se corre, el círculo se achica y aparecen los rayos (o al revés). Con "reducir el
+   movimiento", el cambio es instantáneo (regla de la sección 2). */
+.tema {
+  position: fixed;
+  right: var(--tema-margen);
+  bottom: var(--tema-margen);
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: var(--tema-tamano);
+  height: var(--tema-tamano);
+  padding: 0;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-boton);
+  border-radius: 50%;
+  box-shadow: var(--sombra-elevada);
+  cursor: pointer;
+  transition: background-color var(--transicion);
+}
+
+.tema:hover {
+  background: var(--color-superficie-suave);
+}
+
+.tema__icono {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.tema__astro,
+.tema__mordida,
+.tema__rayos {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--transicion-tema), opacity var(--transicion-tema);
+}
+
+/* Sol (modo claro): círculo chico, rayos a la vista y la mordida fuera del círculo. */
+.tema__astro {
+  transform: scale(0.5);
+}
+
+.tema__mordida {
+  transform: translate(7px, -7px);
+}
+
+/* Luna (modo oscuro): círculo grande con la mordida encima; los rayos giran y se recogen. */
+.tema[data-modo="oscuro"] .tema__astro,
+.tema[data-modo="oscuro"] .tema__mordida {
+  transform: none;
+}
+
+.tema[data-modo="oscuro"] .tema__rayos {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+/* Con el botón a la vista, el final de la página queda libre para él. */
+body:has(> .tema:not([hidden])) .contenido {
+  padding-bottom: var(--tema-reserva);
+}
+
+@media print {
+  .tema {
+    display: none;
+  }
+}
 
 /* 5. Páginas ------------------------------------------------------------------------------- */
 
