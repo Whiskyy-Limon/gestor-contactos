@@ -1691,16 +1691,18 @@ body:has(> .tema:not([hidden])) .contenido {
     border-radius: var(--radio-tarjeta);
   }
 
+  /* Sin ".tabla tbody tr:last-child td": la de escritorio solo quita el borde inferior, que aquí
+     ya se quita, y con su especificidad mayor le quitaría la sangría a la última tarjeta. */
   .tabla td,
   .tabla td:first-child,
-  .tabla td:last-child,
-  .tabla tbody tr:last-child td {
+  .tabla td:last-child {
     padding: 0;
     border: 0;
   }
 
   /* Alineados con el nombre: el ancho del avatar chico más el espacio entre ambos. (Va después
-     de la regla anterior y con su misma especificidad, para que también se aplique al último dato.) */
+     de la regla anterior y con su misma especificidad, para que también se aplique al último dato
+     de cada tarjeta.) */
   .tabla td:not(:first-child) {
     margin-top: var(--espacio-1);
     padding-left: calc(2.25rem + var(--espacio-3));
